@@ -21,38 +21,39 @@ WATCH47 local labels: name (programs_rem/WATCH47.txt), number (build/WATCH47.txt
 :SAVE:     56  WSET = 24h + 2 alarm + 4 chime + 10 (100 hour + minutes) of the alarm
 :HL:       57  the button at x Y, row X shown inverted, the one before inverted again (LBL :HLX:)
 :HLX:      58  the inside of the button R92, R93 (8 x 23, XOR); none when R93 = 0
-:TICK:     59  ======== the watch running ========
-:LTO:      60  the light off when R23 is past: the dissolve back
-:ETO:      61  the C47 off when R38 is past
-:RING:     62  the alarm: past R37: off; else at each new second four beeps (2048 Hz, 60 ms on, 60 ms off
-:NOW:      63  the watch's time: the clock's JD + the offset, in seconds R39 = IP((JD + 0.5) 86400 + 0.5)
-:NEWDAY:   64  X the old day number, Y the new: R47; its date (LBL :CAL:) and weekday ((N + 1) mod 7)
-:NEWMIN:   65  X the old minute, Y the new: R48; at the start (old -1) nothing; the alarm's minute and th
-:CHIME:    66  
-:CAL:      67  the date of the day number R47 (Fliegel and Van Flandern, as Zones 47): a = N + 32044,
-:SWE:      68  the stopwatch's time (1/10 s): R31 + running x (TICKS now - the start)
-:UPD:      69  ======== the display ========
-:CELL:     70  the target kept as shown, its code in R74; the cell's drawer and place (the build writes
-:CSML:     71  
-:COMP:     72  the targets: the colon on; ALM (alarm on) and SIG (chime on), ALM flashing while it
-:HOUR:     73  the hour X in cells 0 1: 24 h: 24H; 12 h: AM (h < 12) or PM, the hour (h + 11) mod 12 + 1
-:D2Z:      74  the value Y (0-99) in the cells X, X + 1 (tens, units); LBL :D2B: the tens blank when 0
-:D2B:      75  
-:CSET:     76  the setting: the month field shows the month; the field blank in the off phase: its first
-:BLK2:     77  the cells R98 and R98 + 1 blank
-:CMON:     78  
-:EGG:      79  C47 in the big digits: blank C 4 7, no colon, no seconds
-:CALM:     80  the alarm: AL, its time, no seconds or date; a field blank in the off phase
-:CSW:      81  the stopwatch: ST; its time E (the split shown: R72), minutes (60), seconds, 1/10 s and 0;
-:DDIG:     82  the drawers: GRMOD 1 (4 when lit: the inverse); R85 x, R86 the band's row, R83 the scale
-:DCLN:     83  the colon: its word R80 x the code (0 / 1), 5 columns
-:DDAY:     84  the letters: LBL 23 + code (their column words, LBL :COL:), on
-:DIND:     85  the indicators: the slot AM / PM / 24H (t = code mod 8: LBL 32 + IP(t / 2), on when t is n
-:MODE:     86  GRMOD 1 + 3 x lit (1 written as it is, 4 the inverse)
-:COL:      87  one column: the word X x on (R87) at x R85, then x + 1
-:WORD:     88  R84 = SINT(X x the scale R83)
-:RUN:      89  R73 columns of R84 from Y (row), X (column); X moves on
-:DISS:     90  the LCD's inside inverted in four XOR passes of a 4 x 4 ordered dither (the light's
-:Q16:      91  , LBL :Q4: the dither's columns: R80-R83 in turn, 16 or 4 columns from Y (row), X (column)
-:Q4:       92  
-:INIT:     93  the start: WOFF and WSET, the words, the screen, the clock
+:WAKE:     59  the standby check: the calculator's clock (JD, R91 the last pass's); more than 30 s since
+:TICK:     60  ======== the watch running ========
+:LTO:      61  the light off when R23 is past: the dissolve back
+:ETO:      62  the C47 off when R38 is past
+:RING:     63  the alarm: past R37: off; else at each new second four beeps (2048 Hz, 60 ms on, 60 ms off
+:NOW:      64  the watch's time: the clock's JD + the offset, in seconds R39 = IP((JD + 0.5) 86400 + 0.5)
+:NEWDAY:   65  X the old day number, Y the new: R47; its date (LBL :CAL:) and weekday ((N + 1) mod 7)
+:NEWMIN:   66  X the old minute, Y the new: R48; at the start (old -1) nothing; the alarm's minute and th
+:CHIME:    67  
+:CAL:      68  the date of the day number R47 (Fliegel and Van Flandern, as Zones 47): a = N + 32044,
+:SWE:      69  the stopwatch's time (1/10 s): R31 + running x (TICKS now - the start)
+:UPD:      70  ======== the display ========
+:CELL:     71  the target kept as shown, its code in R74; the cell's drawer and place (the build writes
+:CSML:     72  
+:COMP:     73  the targets: the colon on; ALM (alarm on) and SIG (chime on), ALM flashing while it
+:HOUR:     74  the hour X in cells 0 1: 24 h: 24H; 12 h: AM (h < 12) or PM, the hour (h + 11) mod 12 + 1
+:D2Z:      75  the value Y (0-99) in the cells X, X + 1 (tens, units); LBL :D2B: the tens blank when 0
+:D2B:      76  
+:CSET:     77  the setting: the month field shows the month; the field blank in the off phase: its first
+:BLK2:     78  the cells R98 and R98 + 1 blank
+:CMON:     79  
+:EGG:      80  C47 in the big digits: blank C 4 7, no colon, no seconds
+:CALM:     81  the alarm: AL, its time, no seconds or date; a field blank in the off phase
+:CSW:      82  the stopwatch: ST; its time E (the split shown: R72), minutes (60), seconds, 1/10 s and 0;
+:DDIG:     83  the drawers: GRMOD 1 (4 when lit: the inverse); R85 x, R86 the band's row, R83 the scale
+:DCLN:     84  the colon: its word R80 x the code (0 / 1), 5 columns
+:DDAY:     85  the letters: LBL 23 + code (their column words, LBL :COL:), on
+:DIND:     86  the indicators: the slot AM / PM / 24H (t = code mod 8: LBL 32 + IP(t / 2), on when t is n
+:MODE:     87  GRMOD 1 + 3 x lit (1 written as it is, 4 the inverse)
+:COL:      88  one column: the word X x on (R87) at x R85, then x + 1
+:WORD:     89  R84 = SINT(X x the scale R83)
+:RUN:      90  R73 columns of R84 from Y (row), X (column); X moves on
+:DISS:     91  the LCD's inside inverted in four XOR passes of a 4 x 4 ordered dither (the light's
+:Q16:      92  , LBL :Q4: the dither's columns: R80-R83 in turn, 16 or 4 columns from Y (row), X (column)
+:Q4:       93  
+:INIT:     94  the start: WOFF and WSET, the words, the screen, the clock

@@ -19,6 +19,11 @@ is an original drawing in the spirit of the watch, not a copy of any brand's.
 
 The button you press is shown pressed (inverted) on the screen until the next one.
 
+**Standby**: the watch keeps the calculator busy, but if it goes to standby anyway, the key that wakes it ends
+WATCH47 cleanly (more than 30 s between two passes of its loop), so the calculator is back in its normal state;
+XEQ "WATCH47" starts it again. A longer power-off time in the calculator's setup, if your firmware has one,
+keeps the watch on longer.
+
 ## The modes
 
 - **Time**: the day of the week (SU MO TU WE TH FR SA), the date, the hours and minutes, the seconds, and the

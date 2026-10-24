@@ -152,5 +152,13 @@ sn, c = S.run([(1.5, END)], until=2)
 check(all(c.reg.get(str(n), D(0)) == 0 for n in range(20, 100)), 'the end: R20-R99 cleared')
 check(c.pix == [] and c.grmod == 0 and c.grfnt == 20, 'the end: screen cleared, GRMOD 0, GRFNT 20')
 
+# ---------------------------------------------------------------- standby (LBL :WAKE:)
+sn, c = S.run([(3, ('sleep', 600))], until=6)
+check(c.ended, 'standby: after 10 min with no key the program ends')
+check(c.pix == [] and c.grmod == 0 and all(c.reg.get(str(n), D(0)) == 0 for n in range(20, 100)),
+      'standby: the screen cleared, R20-R99 cleared')
+sn, c = S.run([(3, ('sleep', 5))], until=6)
+check(not c.ended, 'a gap of 5 s: the watch runs on')
+
 print('ALL OK' if not FAIL else '%d FAILED' % len(FAIL))
 sys.exit(1 if FAIL else 0)

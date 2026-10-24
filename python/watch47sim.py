@@ -1,7 +1,8 @@
 """watch47sim.py - run build/WATCH47.txt in the C47 simulator (c47sim.py, from Almanac 47) with a clock that
 runs: a virtual time t (seconds) moves 0.17 ms a step (Almanac 47's measure), the PAUSE time while no key
 comes, and the length of each BUZZ; Date→ⅅ / Time→ℸ read the start + t, TICKS is 10 t.
-  run(events, start, until, wset, woff)  events: (t, key) in time order (KEY 7 4 9 0 as C47 codes below);
+  run(events, start, until, wset, woff)  events: (t, key) in time order (KEY 7 4 9 0 as C47 codes below),
+                                         or (t, ('sleep', s)): a standby of s seconds (no key);
                                          returns the snapshots (t, pixels, registers) at every key wait, c
   png(fn, pix)                           a PNG of one screen
   python3 python/watch47sim.py           writes docs/*.png and prints the step counts"""
@@ -71,7 +72,10 @@ def run(events=(), start=datetime(2026, 10, 24, 13, 54, 30), until=None, wset=No
         elif op == 'KEY?':
             if snaps:
                 out.append(Snap(st['t'], c.pix, c.reg, c.steps)); out[-1].tclock = st.get('tclock')
-            if ev and ev[0][0] <= st['t'] + 1e-9:
+            if ev and ev[0][0] <= st['t'] + 1e-9 and isinstance(ev[0][1], tuple):
+                st['t'] += ev.pop(0)[1][1]            # ('sleep', s): the calculator in standby s seconds, no key
+                c.keys = []
+            elif ev and ev[0][0] <= st['t'] + 1e-9:
                 c.keys = [ev.pop(0)[1]]
             else:
                 c.keys = []

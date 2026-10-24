@@ -22,6 +22,7 @@
 @ with AM / PM or 24 h; the daily alarm (it beeps 20 s: BUZZ), the hourly chime, the stopwatch (1/10 s:
 @ TICKS), the time setting; the light (a pixel dissolve); the Easter egg: 9 twice in the time mode shows C47.
 @ The three buttons are the C47 keys 7 (LIGHT), 4 (MODE) and 9 (ALARM ON-OFF / 24H / START-STOP); 0 ends.
+@ After a standby (more than 30 s between two passes of the loop) the key that wakes it ends the program.
 @ Modes (4 each time): time -> alarm (AL) -> stopwatch (ST) -> time setting -> time.
 @ time:      7 the light (1.5 s), 9 12 h / 24 h (twice quickly: C47 for 2 s, and the setting as it was)
 @ alarm:     9 alarm and chime: ALM -> ALM SIG -> SIG -> none; 7 set: the hour flashes, 9 + 1, 7 the
@@ -52,7 +53,8 @@
 @ R73 a counter, R74 the code drawn, R75-R79 work, R80-R82 a glyph's words (the dither words R80-R83),
 @ R83 the scale (2^rows above the band), R84 the AGRAPH word, R85 x, R86 the band's row, R87 1 / 0 an
 @ indicator on / off, R88 the glyph labels' first, R89 R90 the side and middle columns of a digit, R92 R93
-@ the button shown inverted (x, row; 0 none), R94 23 ones, R95 the second of the last alarm beep,
+@ the button shown inverted (x, row; 0 none), R91 the clock's JD at the last pass, R94 1 / 0 wait on / end
+@ (the standby check), R95 the second of the last alarm beep,
 @ R96 TICKS now, R97 the cell, R98 the target of LBL :D2Z:, R99 work. R20-R99 cleared at the end.
 @ The user's stack and LASTx are kept (LocR 9: STOS R.00, LASTx in R.08).
 @ Control flow in the C47 STRUCT commands (IF / ELSE / ENDIF, DO / WHILE / ENDDO), indented two spaces
@@ -64,12 +66,17 @@ LocR 9
 STOS R.00
 LASTx
 STO R.08
-XEQ 93                          ; -> :INIT:
+XEQ 94                          ; -> :INIT:
 DO 01                           ; ---- the buttons: 0 (82) the end; a key: LBL :KEY:; between keys the watch runs (LBL :TICK:, 0.2 s) ----
-  DO 02
-    XEQ 59                      ; -> :TICK:
+  DO 02                         ; with no key LBL :WAKE: (the standby check) sets R94 = 1 to wait on, 0 to end (R34 = 82, as 0)
+    XEQ 60                      ; -> :TICK:
+    0
+    STO 94
     PAUSE 2
     KEY? 34
+    XEQ 59                      ; -> :WAKE:
+    RCL 94
+    X≠0?
   WHILE 02
   ENDDO 02
   RCL 34
@@ -277,1033 +284,1033 @@ LBL 23                          ; the letters SU: x, then each column (LBL :COL:
 104
 STO 85
 4177980
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4177980
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16773183
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16773183
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15790095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15790095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732495
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732495
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16519167
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16519167
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 3933180
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 3933180
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777212
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777212
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777212
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777212
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 24                          ; the letters MO: x, then each column (LBL :COL:)
 104
 STO 85
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4128768
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4128768
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1032192
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1032192
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 261120
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 261120
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 261120
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 261120
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1032192
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1032192
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4128768
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4128768
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1048560
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1048560
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4194300
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4194300
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16515135
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16515135
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728655
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728655
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728655
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728655
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16515135
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16515135
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4194300
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4194300
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1048560
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1048560
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 25                          ; the letters TU: x, then each column (LBL :COL:)
 104
 STO 85
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777212
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777212
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777212
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777212
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 26                          ; the letters WE: x, then each column (LBL :COL:)
 104
 STO 85
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 255
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 255
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4080
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4080
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 261888
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 261888
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 261888
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 261888
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4080
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4080
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 255
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 255
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777200
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728655
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728655
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 27                          ; the letters TH: x, then each column (LBL :COL:)
 104
 STO 85
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15360
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15360
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15360
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15360
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15360
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15360
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15360
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15360
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 28                          ; the letters FR: x, then each column (LBL :COL:)
 104
 STO 85
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744000
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15990783
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15990783
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732480
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732480
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732672
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732672
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732720
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732720
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16531452
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16531452
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4193343
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4193343
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1044495
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1044495
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 29                          ; the letters SA: x, then each column (LBL :COL:)
 104
 STO 85
 4177980
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4177980
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16773183
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16773183
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15790095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15790095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732495
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732495
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16519167
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16519167
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 3933180
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 3933180
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 262128
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 262128
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4190448
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4190448
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16515312
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16515312
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4190448
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4190448
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 262128
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 262128
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 30                          ; the letters AL: x, then each column (LBL :COL:)
 104
 STO 85
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 262128
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 262128
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4190448
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4190448
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16515312
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16515312
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4190448
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4190448
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 262128
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 262128
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 63
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 31                          ; the letters ST: x, then each column (LBL :COL:)
 104
 STO 85
 4177980
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4177980
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16773183
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16773183
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15790095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15790095
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15744015
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732495
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15732495
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16519167
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16519167
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 3933180
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 3933180
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 16777215
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 15728640
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 32                          ; the indicator AM: x, then each column
 158
 STO 85
 31
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 36
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 68
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 36
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 31
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 32
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 24
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 32
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 33                          ; the indicator PM: x, then each column
 158
 STO 85
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 72
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 72
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 72
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 48
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 32
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 24
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 32
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 34                          ; the indicator 24H: x, then each column
 158
 STO 85
 35
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 69
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 73
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 73
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 49
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 12
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 20
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 36
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 4
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 8
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 8
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 8
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 35                          ; the indicator ALM: x, then each column
 180
 STO 85
 31
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 36
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 68
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 36
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 31
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 32
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 24
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 32
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 36                          ; the indicator SIG: x, then each column
 202
 STO 85
 50
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 73
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 73
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 73
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 38
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 65
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 65
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 62
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 65
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 65
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 73
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 47
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 37                          ; the indicator SPL: x, then each column
 224
 STO 85
 50
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 73
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 73
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 73
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 38
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 72
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 72
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 72
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 48
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 127
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 1
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 0
-XEQ 87                          ; -> :COL:
+XEQ 88                          ; -> :COL:
 RTN
 LBL 38                          ; :KEY:  the indicators)
 TICKS                           ; ======== the buttons ========
@@ -1370,7 +1377,7 @@ X≠0?
 1
 RCL× 31
 STO 31
-XEQ 68                          ; -> :SWE:
+XEQ 69                          ; -> :SWE:
 STO 72
 1
 RCL 33
@@ -1386,7 +1393,7 @@ STO 23
 RCL 22
 X≠0?
 RTN
-XEQ 90                          ; -> :DISS:
+XEQ 91                          ; -> :DISS:
 1
 STO 22
 RTN
@@ -1516,7 +1523,7 @@ STO 26
 STO 27
 GTO 56                          ; -> :SAVE:
 LBL 48                          ; :KC2:  stopwatch: the time so far kept (R31), the start now, running 1 - running (stopped: R31 stays)
-XEQ 68                          ; -> :SWE:
+XEQ 69                          ; -> :SWE:
 STO 31
 RCL 96
 STO 32
@@ -1727,7 +1734,8 @@ LBL 58                          ; :HLX:  LBL :HLX: the inside of the button R92,
 RCL 93
 X=0?
 RTN
-RCL 94
+8388607
+SINT
 STO 84
 3
 GRMOD
@@ -1740,21 +1748,48 @@ RCL 92
 8
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 RTN
-LBL 59                          ; :TICK:  ======== the watch running ========
+LBL 59                          ; :WAKE:  ---- LBL :WAKE: the standby check: the calculator's clock (JD, R91 the last pass's); more than 30 s since
+Date→ⅅ                          ; the last pass (one is about 0.3 s): the calculator was in standby, and the key that woke it ends the
+Time→ℸ                          ; program cleanly (R34 = 82, as 0), so it is left in its normal state. R94 = 1 - (IP(gap / 30 s) not 0) ----
+ⅅℸ→J
+RCL 91
+X<>Y
+STO 91
+X<>Y
+-
+86400
+×
+30
+÷
+IP
+X≠0?
+1
+1
+X<>Y
+-
+STO 94
+1
+RCL 94
+-
+82
+×
+STO 34
+RTN
+LBL 60                          ; :TICK:  ======== the watch running ========
 TICKS                           ; ---- LBL :TICK: the time (LBL :NOW:), the light's end, the C47's end, the alarm's beeps, the flashing
 STO 96                          ; phase; then the display (LBL :UPD:) ----
-XEQ 63                          ; -> :NOW:
+XEQ 64                          ; -> :NOW:
 RCL 22
 X≠0?
-XEQ 60                          ; -> :LTO:
+XEQ 61                          ; -> :LTO:
 RCL 38
 X≠0?
-XEQ 61                          ; -> :ETO:
+XEQ 62                          ; -> :ETO:
 RCL 37
 X≠0?
-XEQ 62                          ; -> :RING:
+XEQ 63                          ; -> :RING:
 RCL 96
 5
 ÷
@@ -1762,17 +1797,17 @@ IP
 2
 MOD
 STO 49
-GTO 69                          ; -> :UPD:
-LBL 60                          ; :LTO:  LBL :LTO: the light off when R23 is past: the dissolve back
+GTO 70                          ; -> :UPD:
+LBL 61                          ; :LTO:  LBL :LTO: the light off when R23 is past: the dissolve back
 RCL 23
 RCL 96
 X<Y?
 RTN
-XEQ 90                          ; -> :DISS:
+XEQ 91                          ; -> :DISS:
 0
 STO 22
 RTN
-LBL 61                          ; :ETO:  LBL :ETO: the C47 off when R38 is past
+LBL 62                          ; :ETO:  LBL :ETO: the C47 off when R38 is past
 RCL 38
 RCL 96
 X<Y?
@@ -1780,7 +1815,7 @@ RTN
 0
 STO 38
 RTN
-LBL 62                          ; :RING:  LBL :RING: the alarm: past R37: off; else at each new second four beeps (2048 Hz, 60 ms on, 60 ms off)
+LBL 63                          ; :RING:  LBL :RING: the alarm: past R37: off; else at each new second four beeps (2048 Hz, 60 ms on, 60 ms off)
 RCL 37
 RCL 96
 X≥Y?
@@ -1816,7 +1851,7 @@ BUZZ
 60
 BUZZ
 RTN
-LBL 63                          ; :NOW:  ---- LBL :NOW: the watch's time: the clock's JD + the offset, in seconds R39 = IP((JD + 0.5) 86400 + 0.5);
+LBL 64                          ; :NOW:  ---- LBL :NOW: the watch's time: the clock's JD + the offset, in seconds R39 = IP((JD + 0.5) 86400 + 0.5);
 Date→ⅅ                          ; a new day: the date (LBL :NEWDAY:); hh mm ss; a new minute: the alarm, the chime (LBL :NEWMIN:) ----
 Time→ℸ
 ⅅℸ→J
@@ -1834,7 +1869,7 @@ STO 39
 IP
 RCL 47
 X≠Y?
-XEQ 64                          ; -> :NEWDAY:
+XEQ 65                          ; -> :NEWDAY:
 RCL 39
 86400
 MOD
@@ -1860,9 +1895,9 @@ RCL 39
 IP
 RCL 48
 X≠Y?
-XEQ 65                          ; -> :NEWMIN:
+XEQ 66                          ; -> :NEWMIN:
 RTN
-LBL 64                          ; :NEWDAY:  LBL :NEWDAY: X the old day number, Y the new: R47; its date (LBL :CAL:) and weekday ((N + 1) mod 7)
+LBL 65                          ; :NEWDAY:  LBL :NEWDAY: X the old day number, Y the new: R47; its date (LBL :CAL:) and weekday ((N + 1) mod 7)
 X<>Y
 STO 47
 1
@@ -1870,8 +1905,8 @@ STO 47
 7
 MOD
 STO 46
-GTO 67                          ; -> :CAL:
-LBL 65                          ; :NEWMIN:  LBL :NEWMIN: X the old minute, Y the new: R48; at the start (old -1) nothing; the alarm's minute and the
+GTO 68                          ; -> :CAL:
+LBL 66                          ; :NEWMIN:  LBL :NEWMIN: X the old minute, Y the new: R48; at the start (old -1) nothing; the alarm's minute and the
 X<>Y                            ; alarm on: it rings 20 s (R37); else a new hour and the chime on: one beep (not while it rings)
 STO 48
 X<>Y
@@ -1879,15 +1914,15 @@ X<0?
 RTN
 RCL 27
 X=0?
-GTO 66                          ; -> :CHIME:
+GTO 67                          ; -> :CHIME:
 RCL 43
 RCL 25
 X≠Y?
-GTO 66                          ; -> :CHIME:
+GTO 67                          ; -> :CHIME:
 RCL 44
 RCL 26
 X≠Y?
-GTO 66                          ; -> :CHIME:
+GTO 67                          ; -> :CHIME:
 RCL 96
 200
 +
@@ -1895,7 +1930,7 @@ STO 37
 -1
 STO 95
 RTN
-LBL 66                          ; :CHIME:
+LBL 67                          ; :CHIME:
 RCL 28
 X=0?
 RTN
@@ -1909,7 +1944,7 @@ RTN
 100
 BUZZ
 RTN
-LBL 67                          ; :CAL:  ---- LBL :CAL: the date of the day number R47 (Fliegel and Van Flandern, as Zones 47): a = N + 32044,
+LBL 68                          ; :CAL:  ---- LBL :CAL: the date of the day number R47 (Fliegel and Van Flandern, as Zones 47): a = N + 32044,
 RCL 47                          ; b = (4a + 3) div 146097, c = a - 146097b div 4, d = (4c + 3) div 1461, e = c - 1461d div 4,
 32044                           ; m = (5e + 2) div 153; day = e - (153m + 2) div 5 + 1, month = m + 3 - 12 (m div 10), year = 100b + d
 +                               ; - 4800 + m div 10 (R75 a c e, R76 b, R77 d, R78 m) ----
@@ -1988,7 +2023,7 @@ RCL 79
 +
 STO 40
 RTN
-LBL 68                          ; :SWE:  ---- LBL :SWE: the stopwatch's time (1/10 s): R31 + running x (TICKS now - the start) ----
+LBL 69                          ; :SWE:  ---- LBL :SWE: the stopwatch's time (1/10 s): R31 + running x (TICKS now - the start) ----
 RCL 96
 RCL 32
 -
@@ -1997,8 +2032,8 @@ RCL 30
 RCL 31
 +
 RTN
-LBL 69                          ; :UPD:  ======== the display ========
-XEQ 72                          ; -> :COMP:  ---- LBL :UPD: the targets (LBL :COMP:), then every cell whose target is not what is shown (LBL :CELL:) ----
+LBL 70                          ; :UPD:  ======== the display ========
+XEQ 73                          ; -> :COMP:  ---- LBL :UPD: the targets (LBL :COMP:), then every cell whose target is not what is shown (LBL :CELL:) ----
 0
 STO 97
 DO 03
@@ -2013,7 +2048,7 @@ DO 03
   RCL IND 75
   RCL IND 76
   X≠Y?
-  XEQ 70                        ; -> :CELL:
+  XEQ 71                        ; -> :CELL:
   1
   STO+ 97
   11
@@ -2022,26 +2057,26 @@ DO 03
 WHILE 03
 ENDDO 03
 RTN
-LBL 70                          ; :CELL:  LBL :CELL: the target kept as shown, its code in R74; the cell's drawer and place (the build writes
+LBL 71                          ; :CELL:  LBL :CELL: the target kept as shown, its code in R74; the cell's drawer and place (the build writes
 RCL IND 75                      ; them from python/layout.py: the big digits' x by arithmetic, the small ones' x, band and scale)
 STO IND 76
 STO 74
 RCL 97                          ; ==== CELL
 8
 X=Y?
-GTO 83                          ; -> :DCLN:
+GTO 84                          ; -> :DCLN:
 RCL 97
 9
 X=Y?
-GTO 84                          ; -> :DDAY:
+GTO 85                          ; -> :DDAY:
 RCL 97
 10
 X=Y?
-GTO 85                          ; -> :DIND:
+GTO 86                          ; -> :DIND:
 RCL 97
 4
 X≤Y?
-GTO 71                          ; -> :CSML:
+GTO 72                          ; -> :CSML:
 RCL 97
 2
 MOD
@@ -2067,8 +2102,8 @@ STO 89
 STO 90
 0
 STO 88
-GTO 82                          ; -> :DDIG:
-LBL 71                          ; :CSML:
+GTO 83                          ; -> :DDIG:
+LBL 72                          ; :CSML:
 RCL 97
 4
 -
@@ -2106,8 +2141,8 @@ STO 89
 STO 90
 12
 STO 88
-GTO 82                          ; -> :DDIG:
-LBL 72                          ; :COMP:  ---- LBL :COMP: the targets: the colon on; ALM (alarm on) and SIG (chime on), ALM flashing while it
+GTO 83                          ; -> :DDIG:
+LBL 73                          ; :COMP:  ---- LBL :COMP: the targets: the colon on; ALM (alarm on) and SIG (chime on), ALM flashing while it
 1                               ; rings; then the mode's ----
 STO 58
 RCL 27
@@ -2129,33 +2164,33 @@ STO- 60
 RCL 20
 1
 X=Y?
-GTO 80                          ; -> :CALM:
+GTO 81                          ; -> :CALM:
 RCL 20
 2
 X=Y?
-GTO 81                          ; -> :CSW:
+GTO 82                          ; -> :CSW:
 RCL 43                          ; the time (and the setting): the hour (LBL :HOUR:), the minutes, the seconds, the date, the weekday
-XEQ 73                          ; -> :HOUR:
+XEQ 74                          ; -> :HOUR:
 RCL 44
 52
-XEQ 74                          ; -> :D2Z:
+XEQ 75                          ; -> :D2Z:
 RCL 45
 54
-XEQ 74                          ; -> :D2Z:
+XEQ 75                          ; -> :D2Z:
 RCL 42
 56
-XEQ 75                          ; -> :D2B:
+XEQ 76                          ; -> :D2B:
 RCL 46
 STO 59
 RCL 20
 3
 X=Y?
-XEQ 76                          ; -> :CSET:
+XEQ 77                          ; -> :CSET:
 RCL 38
 X≠0?
-XEQ 79                          ; -> :EGG:
+XEQ 80                          ; -> :EGG:
 RTN
-LBL 73                          ; :HOUR:  LBL :HOUR: the hour X in cells 0 1: 24 h: 24H; 12 h: AM (h < 12) or PM, the hour (h + 11) mod 12 + 1
+LBL 74                          ; :HOUR:  LBL :HOUR: the hour X in cells 0 1: 24 h: 24H; 12 h: AM (h < 12) or PM, the hour (h + 11) mod 12 + 1
 STO 78                          ; (no branch: the indicator + 4 x 24h + (1 - 24h)(1 + IP(h / 12)); the hour h + (1 - 24h)(h12 - h))
 1
 RCL 24
@@ -2186,8 +2221,8 @@ RCL× 79
 RCL 78
 +
 50
-GTO 75                          ; -> :D2B:
-LBL 74                          ; :D2Z:  LBL :D2Z: the value Y (0-99) in the cells X, X + 1 (tens, units); LBL :D2B: the tens blank when 0
+GTO 76                          ; -> :D2B:
+LBL 75                          ; :D2Z:  LBL :D2Z: the value Y (0-99) in the cells X, X + 1 (tens, units); LBL :D2B: the tens blank when 0
 STO 98
 R↓
 STO 79
@@ -2203,8 +2238,8 @@ STO+ 98
 R↓
 STO IND 98
 RTN
-LBL 75                          ; :D2B:
-XEQ 74                          ; -> :D2Z:
+LBL 76                          ; :D2B:
+XEQ 75                          ; -> :D2Z:
 1
 STO- 98
 RCL IND 98
@@ -2213,11 +2248,11 @@ RTN
 10
 STO IND 98
 RTN
-LBL 76                          ; :CSET:  LBL :CSET: the setting: the month field shows the month; the field blank in the off phase: its first
+LBL 77                          ; :CSET:  LBL :CSET: the setting: the month field shows the month; the field blank in the off phase: its first
 RCL 21                          ; cell is the character code of the text "62488" at the field (6 = 54 the seconds, 2 = 50 the hour ...)
 3
 X=Y?
-XEQ 78                          ; -> :CMON:
+XEQ 79                          ; -> :CMON:
 RCL 49
 X≠0?
 RTN
@@ -2227,7 +2262,7 @@ RCL 21
 αSL 77
 α→𝑥 77
 STO 98
-LBL 77                          ; :BLK2:  LBL :BLK2: the cells R98 and R98 + 1 blank
+LBL 78                          ; :BLK2:  LBL :BLK2: the cells R98 and R98 + 1 blank
 10
 STO IND 98
 1
@@ -2235,11 +2270,11 @@ STO+ 98
 10
 STO IND 98
 RTN
-LBL 78                          ; :CMON:
+LBL 79                          ; :CMON:
 RCL 41
 56
-GTO 75                          ; -> :D2B:
-LBL 79                          ; :EGG:  LBL :EGG: C47 in the big digits: blank C 4 7, no colon, no seconds
+GTO 76                          ; -> :D2B:
+LBL 80                          ; :EGG:  LBL :EGG: C47 in the big digits: blank C 4 7, no colon, no seconds
 10
 STO 50
 11
@@ -2252,21 +2287,21 @@ STO 53
 STO 58
 54
 STO 98
-GTO 77                          ; -> :BLK2:
-LBL 80                          ; :CALM:  LBL :CALM: the alarm: AL, its time, no seconds or date; a field blank in the off phase
+GTO 78                          ; -> :BLK2:
+LBL 81                          ; :CALM:  LBL :CALM: the alarm: AL, its time, no seconds or date; a field blank in the off phase
 7
 STO 59
 RCL 25
-XEQ 73                          ; -> :HOUR:
+XEQ 74                          ; -> :HOUR:
 RCL 26
 52
-XEQ 74                          ; -> :D2Z:
+XEQ 75                          ; -> :D2Z:
 54
 STO 98
-XEQ 77                          ; -> :BLK2:
+XEQ 78                          ; -> :BLK2:
 56
 STO 98
-XEQ 77                          ; -> :BLK2:
+XEQ 78                          ; -> :BLK2:
 RCL 21
 X=0?
 RTN
@@ -2279,11 +2314,11 @@ RCL 21
 48
 +
 STO 98
-GTO 77                          ; -> :BLK2:
-LBL 81                          ; :CSW:  LBL :CSW: the stopwatch: ST; its time E (the split shown: R72), minutes (60), seconds, 1/10 s and 0;
+GTO 78                          ; -> :BLK2:
+LBL 82                          ; :CSW:  LBL :CSW: the stopwatch: ST; its time E (the split shown: R72), minutes (60), seconds, 1/10 s and 0;
 8                               ; SPL when split
 STO 59
-XEQ 68                          ; -> :SWE:
+XEQ 69                          ; -> :SWE:
 STO 77
 RCL 72
 RCL 77
@@ -2303,7 +2338,7 @@ IP
 60
 MOD
 50
-XEQ 75                          ; -> :D2B:
+XEQ 76                          ; -> :D2B:
 RCL 77
 10
 ÷
@@ -2311,7 +2346,7 @@ IP
 60
 MOD
 52
-XEQ 74                          ; -> :D2Z:
+XEQ 75                          ; -> :D2Z:
 RCL 77
 10
 MOD
@@ -2320,39 +2355,39 @@ STO 54
 STO 55
 56
 STO 98
-GTO 77                          ; -> :BLK2:
-LBL 82                          ; :DDIG:  ---- the drawers: GRMOD 1 (4 when lit: the inverse); R85 x, R86 the band's row, R83 the scale ----
+GTO 78                          ; -> :BLK2:
+LBL 83                          ; :DDIG:  ---- the drawers: GRMOD 1 (4 when lit: the inverse); R85 x, R86 the band's row, R83 the scale ----
 RCL 74                          ; LBL :DDIG: the digit R74: its words (LBL R88 + code), the side columns (R89), the middle (R90), the side
 RCL 88
 +
 STO 99
 XEQ IND 99
-XEQ 86                          ; -> :MODE:
+XEQ 87                          ; -> :MODE:
 RCL 80
-XEQ 88                          ; -> :WORD:
+XEQ 89                          ; -> :WORD:
 RCL 89
 STO 73
 RCL 86
 RCL 85
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 STO 85
 RCL 81
-XEQ 88                          ; -> :WORD:
+XEQ 89                          ; -> :WORD:
 RCL 90
 STO 73
 RCL 86
 RCL 85
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 STO 85
 RCL 82
-XEQ 88                          ; -> :WORD:
+XEQ 89                          ; -> :WORD:
 RCL 89
 STO 73
 RCL 86
 RCL 85
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 RTN
-LBL 83                          ; :DCLN:  LBL :DCLN: the colon: its word R80 x the code (0 / 1), 5 columns
+LBL 84                          ; :DCLN:  LBL :DCLN: the colon: its word R80 x the code (0 / 1), 5 columns
 174
 STO 85
 37
@@ -2361,23 +2396,23 @@ STO 86
 STO 83
 277076996259840
 STO 80
-XEQ 86                          ; -> :MODE:
+XEQ 87                          ; -> :MODE:
 RCL 80
 RCL 74
 ×
-XEQ 88                          ; -> :WORD:
+XEQ 89                          ; -> :WORD:
 5
 STO 73
 RCL 86
 RCL 85
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 RTN
-LBL 84                          ; :DDAY:  LBL :DDAY: the letters: LBL 23 + code (their column words, LBL :COL:), on
+LBL 85                          ; :DDAY:  LBL :DDAY: the letters: LBL 23 + code (their column words, LBL :COL:), on
 101
 STO 86
 536870912
 STO 83
-XEQ 86                          ; -> :MODE:
+XEQ 87                          ; -> :MODE:
 1
 STO 87
 RCL 74
@@ -2386,12 +2421,12 @@ RCL 74
 STO 99
 XEQ IND 99
 RTN
-LBL 85                          ; :DIND:  LBL :DIND: the indicators: the slot AM / PM / 24H (t = code mod 8: LBL 32 + IP(t / 2), on when t is not
+LBL 86                          ; :DIND:  LBL :DIND: the indicators: the slot AM / PM / 24H (t = code mod 8: LBL 32 + IP(t / 2), on when t is not
 101                             ; 0), then ALM, SIG, SPL (LBL 35-37, on by their bits)
 STO 86
 549755813888
 STO 83
-XEQ 86                          ; -> :MODE:
+XEQ 87                          ; -> :MODE:
 RCL 74
 8
 MOD
@@ -2432,7 +2467,7 @@ MOD
 STO 87
 XEQ 37
 RTN
-LBL 86                          ; :MODE:  LBL :MODE: GRMOD 1 + 3 x lit (1 written as it is, 4 the inverse)
+LBL 87                          ; :MODE:  LBL :MODE: GRMOD 1 + 3 x lit (1 written as it is, 4 the inverse)
 RCL 22
 3
 ×
@@ -2440,27 +2475,27 @@ RCL 22
 +
 GRMOD
 RTN
-LBL 87                          ; :COL:  LBL :COL: one column: the word X x on (R87) at x R85, then x + 1
+LBL 88                          ; :COL:  LBL :COL: one column: the word X x on (R87) at x R85, then x + 1
 RCL× 87
-XEQ 88                          ; -> :WORD:
+XEQ 89                          ; -> :WORD:
 RCL 86
 RCL 85
 AGRAPH 84
 STO 85
 RTN
-LBL 88                          ; :WORD:  LBL :WORD: R84 = SINT(X x the scale R83)
+LBL 89                          ; :WORD:  LBL :WORD: R84 = SINT(X x the scale R83)
 RCL× 83
 SINT
 STO 84
 RTN
-LBL 89                          ; :RUN:  LBL :RUN: R73 columns of R84 from Y (row), X (column); X moves on
+LBL 90                          ; :RUN:  LBL :RUN: R73 columns of R84 from Y (row), X (column); X moves on
 DO 04
   AGRAPH 84
   DSE 73
 WHILE 04
 ENDDO 04
 RTN
-LBL 90                          ; :DISS:  ---- LBL :DISS: the LCD's inside inverted in four XOR passes of a 4 x 4 ordered dither (the light's
+LBL 91                          ; :DISS:  ---- LBL :DISS: the LCD's inside inverted in four XOR passes of a 4 x 4 ordered dither (the light's
 3                               ; pixel effect); each pass shown (PAUSE 1) ----
 GRMOD
 0#2                             ; ==== DISS (written by the build: per pass and band the four column words R80-R83, then the inside)
@@ -2473,20 +2508,20 @@ STO 82
 STO 83
 37
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 0#2
@@ -2499,20 +2534,20 @@ STO 82
 STO 83
 101
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 0#2
@@ -2525,20 +2560,20 @@ STO 82
 STO 83
 165
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 PAUSE 0
@@ -2552,20 +2587,20 @@ STO 82
 STO 83
 37
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 101010101010101010101010101010101010101010101010101010101010101#2
@@ -2578,20 +2613,20 @@ STO 82
 STO 83
 101
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 101010101010101010101#2
@@ -2604,20 +2639,20 @@ STO 82
 STO 83
 165
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 PAUSE 0
@@ -2631,20 +2666,20 @@ STO 82
 STO 83
 37
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 1010101010101010101010101010101010101010101010101010101010101010#2
@@ -2657,20 +2692,20 @@ STO 82
 STO 83
 101
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 1010101010101010101010#2
@@ -2683,20 +2718,20 @@ STO 82
 STO 83
 165
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 PAUSE 0
@@ -2710,20 +2745,20 @@ STO 82
 STO 83
 37
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 0#2
@@ -2736,20 +2771,20 @@ STO 82
 STO 83
 101
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 0#2
@@ -2762,25 +2797,25 @@ STO 82
 STO 83
 165
 93
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 91                          ; -> :Q16:
-XEQ 92                          ; -> :Q4:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 92                          ; -> :Q16:
+XEQ 93                          ; -> :Q4:
 AGRAPH 80
 AGRAPH 81
 PAUSE 0
 RTN
-LBL 91                          ; :Q16:  LBL :Q16:, LBL :Q4: the dither's columns: R80-R83 in turn, 16 or 4 columns from Y (row), X (column)
+LBL 92                          ; :Q16:  LBL :Q16:, LBL :Q4: the dither's columns: R80-R83 in turn, 16 or 4 columns from Y (row), X (column)
 AGRAPH 80
 AGRAPH 81
 AGRAPH 82
@@ -2793,13 +2828,13 @@ AGRAPH 80
 AGRAPH 81
 AGRAPH 82
 AGRAPH 83
-LBL 92                          ; :Q4:
+LBL 93                          ; :Q4:
 AGRAPH 80
 AGRAPH 81
 AGRAPH 82
 AGRAPH 83
 RTN
-LBL 93                          ; :INIT:  ---- LBL :INIT: the start: WOFF and WSET, the words, the screen, the clock ----
+LBL 94                          ; :INIT:  ---- LBL :INIT: the start: WOFF and WSET, the words, the screen, the clock ----
 WSIZE 64
 20                              ; the work registers cleared (they may hold the user's numbers)
 R-CLR                           ; R-CLR 20.00: R20 to R99 (a count of 0: to R99)
@@ -2841,9 +2876,10 @@ RCL 79
 ÷
 IP
 STO 25
-8388607
-SINT
-STO 94
+Date→ⅅ                          ; the clock now, for the standby check (LBL :WAKE:)
+Time→ℸ
+ⅅℸ→J
+STO 91
 -1                              ; nothing shown yet (-1); the day and minute unknown; no button inverted
 STO 47
 STO 48
@@ -2916,7 +2952,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 576460752303423488
 SINT
 STO 84
@@ -2924,7 +2960,7 @@ DROP
 8
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4035225266123964416
 SINT
 STO 84
@@ -2932,7 +2968,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4611686018427385856
 SINT
 STO 84
@@ -2940,7 +2976,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 1024
 SINT
 STO 84
@@ -2948,7 +2984,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 512
 SINT
 STO 84
@@ -2956,7 +2992,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 256
 SINT
 STO 84
@@ -2964,7 +3000,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4611686018427379840
 SINT
 STO 84
@@ -2972,7 +3008,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4160
 SINT
 STO 84
@@ -2980,7 +3016,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 2080
 SINT
 STO 84
@@ -2988,7 +3024,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 1040
 SINT
 STO 84
@@ -2996,7 +3032,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 520
 SINT
 STO 84
@@ -3004,7 +3040,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 264
 SINT
 STO 84
@@ -3012,7 +3048,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 136
 SINT
 STO 84
@@ -3020,7 +3056,7 @@ DROP
 18
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4611685984067649672
 SINT
 STO 84
@@ -3028,7 +3064,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 34359738504
 SINT
 STO 84
@@ -3036,7 +3072,7 @@ DROP
 214
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4611685984067649672
 SINT
 STO 84
@@ -3044,7 +3080,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 136
 SINT
 STO 84
@@ -3052,7 +3088,7 @@ DROP
 18
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 264
 SINT
 STO 84
@@ -3060,7 +3096,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 520
 SINT
 STO 84
@@ -3068,7 +3104,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 1040
 SINT
 STO 84
@@ -3076,7 +3112,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 2080
 SINT
 STO 84
@@ -3084,7 +3120,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4160
 SINT
 STO 84
@@ -3092,7 +3128,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4611686018427379840
 SINT
 STO 84
@@ -3100,7 +3136,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 256
 SINT
 STO 84
@@ -3108,7 +3144,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 512
 SINT
 STO 84
@@ -3116,7 +3152,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 1024
 SINT
 STO 84
@@ -3124,7 +3160,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4611686018427385856
 SINT
 STO 84
@@ -3132,7 +3168,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 63
 0
 DROP
@@ -3144,7 +3180,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 2097152
 SINT
 STO 84
@@ -3152,7 +3188,7 @@ DROP
 8
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4194303
 SINT
 STO 84
@@ -3160,7 +3196,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4611686018427387903
 SINT
 STO 84
@@ -3168,7 +3204,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 68
 4611686018427387903
@@ -3178,7 +3214,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 92
 4611686018427387903
@@ -3188,7 +3224,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 307
 4611686018427387903
@@ -3198,7 +3234,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 331
 4611686018427387903
@@ -3208,7 +3244,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 335
 4611686018427387903
@@ -3218,7 +3254,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 125
 0
 DROP
@@ -3230,7 +3266,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 140737496743936
 SINT
 STO 84
@@ -3238,7 +3274,7 @@ DROP
 8
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 281474968322048
 SINT
 STO 84
@@ -3246,7 +3282,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4611686018427387903
 SINT
 STO 84
@@ -3254,7 +3290,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 68
 4611686018427387903
@@ -3264,7 +3300,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 92
 4611686018427387903
@@ -3274,7 +3310,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 307
 4611686018427387903
@@ -3284,7 +3320,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 331
 4611686018427387903
@@ -3294,7 +3330,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 DROP
 335
 4611686018427387903
@@ -3304,7 +3340,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 281474968322048
 SINT
 STO 84
@@ -3312,7 +3348,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 140737496743936
 SINT
 STO 84
@@ -3320,7 +3356,7 @@ DROP
 8
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 281474968322048
 SINT
 STO 84
@@ -3328,7 +3364,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 187
 0
 DROP
@@ -3340,7 +3376,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 2097152
 SINT
 STO 84
@@ -3348,7 +3384,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4194304
 SINT
 STO 84
@@ -3356,7 +3392,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 8388608
 SINT
 STO 84
@@ -3364,7 +3400,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 17301503
 SINT
 STO 84
@@ -3372,7 +3408,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 34078720
 SINT
 STO 84
@@ -3380,7 +3416,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 68157440
 SINT
 STO 84
@@ -3388,7 +3424,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 136314880
 SINT
 STO 84
@@ -3396,7 +3432,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 272629760
 SINT
 STO 84
@@ -3404,7 +3440,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 276824064
 SINT
 STO 84
@@ -3412,7 +3448,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 285212672
 SINT
 STO 84
@@ -3420,7 +3456,7 @@ DROP
 18
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 285212673
 SINT
 STO 84
@@ -3428,7 +3464,7 @@ DROP
 216
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 285212672
 SINT
 STO 84
@@ -3436,7 +3472,7 @@ DROP
 18
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 276824064
 SINT
 STO 84
@@ -3444,7 +3480,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 272629760
 SINT
 STO 84
@@ -3452,7 +3488,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 136314880
 SINT
 STO 84
@@ -3460,7 +3496,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 68157440
 SINT
 STO 84
@@ -3468,7 +3504,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 34078720
 SINT
 STO 84
@@ -3476,7 +3512,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 17301503
 SINT
 STO 84
@@ -3484,7 +3520,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 8388608
 SINT
 STO 84
@@ -3492,7 +3528,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 4194304
 SINT
 STO 84
@@ -3500,7 +3536,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 2097152
 SINT
 STO 84
@@ -3508,7 +3544,7 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 2097151
 SINT
 STO 84
@@ -3516,6 +3552,6 @@ DROP
 1
 STO 73
 DROP
-XEQ 89                          ; -> :RUN:
+XEQ 90                          ; -> :RUN:
 RTN
 END
