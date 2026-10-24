@@ -61,7 +61,7 @@ def run(events=(), start=datetime(2026, 10, 24, 13, 54, 30), until=None, wset=No
             c.clock = j0 + D(repr(st['t'])) / D(86400); st['tclock'] = st['t']
         elif op == 'PAUSE':
             n = int(c.lines[c.at].split()[1])
-            nxt = c.lines[c.at + 1] if c.at + 1 < len(c.lines) else ''
+            nxt = next((l for l in c.lines[c.at + 1:c.at + 4] if l.startswith('KEY?')), '')   # the wait's KEY?
             if n == 0 and snaps:                      # PAUSE 0: a pass of the light's dissolve, shown
                 out.append(Snap(st['t'], c.pix, c.reg, c.steps)); out[-1].diss = True
             if nxt.startswith('KEY?'):

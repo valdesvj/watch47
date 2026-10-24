@@ -35,7 +35,9 @@ keeps the watch on longer.
   7 sets it: the hour flashes, 9 adds one; 7 the minutes, 9 adds one; 7 the hour again; 4 ends the setting.
   Setting the alarm switches it on. At its minute the watch **beeps for 20 s** (BUZZ, 2048 Hz, four beeps a
   second) with ALM flashing; any button stops it. With SIG on it **beeps once on the hour**.
-- **Stopwatch (ST)**: minutes, seconds and tenths (shown as 1/100 with a last 0: the C47's TICKS count tenths).
+- **Stopwatch (ST)**: minutes, seconds, tenths and hundredths. The C47 counts tenths only (TICKS is 100 ms; its
+  own STOPW app shows tenths too), so while it runs the hundredths digit spins like the real watch's blur, and
+  stopped or split it shows the tenths and 0. While it runs the display updates about 4 times a second.
   9 start / stop; 7 while running: split (the time stops on the screen, SPL; the stopwatch runs on), 7 again:
   back; 7 when stopped: reset. It keeps running in the other modes. Up to 59'59"9, then round again.
 - **Time setting**: the seconds flash; 9 puts them to 00 (from 30 on, to the next minute). 7 moves on: hour,

@@ -50,6 +50,16 @@
   is refused by the calculator. Now 20.79 R-CLR (R20-R98) and 0 STO 99, at the start and the end; the build
   stops on an R-CLR with no count. To tell Almanac 47 (c47sim's R-CLR: a count of 0 is an error there).
 
+## Oct 24, 2026 - the stopwatch's 1/100 (Victor: the hundredths were not right)
+
+- TICKS is 100 ms (the C47 reference; its STOPW app shows tenths): no hundredths for a program. Victor chose: while
+  it runs a spinning digit, (7 E + 3) mod 10 (E the tenths), x running x (1 - split); stopped or split: 0.
+- The loop pauses PAUSE 1 while the stopwatch runs in its mode (running x mode(mode - 1)(3 - mode)/2, then
+  X≠0? PAUSE 1, X=0? PAUSE 2): about 4 updates a second (was 3; the redraw of the spinning digit costs some).
+  Almanac 47 warns that keys can fall outside a short PAUSE: to check on the C47 (9 and 7 while it runs).
+- watch47sim: the PAUSE before the wait's KEY? looked for within 3 lines. Tests: the digit changes while running,
+  0 stopped and split, more than 3.5 updates a second.
+
 ## To do
 
 1. Run on Victor's C47 (convert build/WATCH47.txt with rejig): GRMOD 4 and BUZZ in a program are new here.

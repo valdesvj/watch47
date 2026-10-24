@@ -152,6 +152,16 @@ sn, c = S.run([(1.5, END)], until=2)
 check(all(c.reg.get(str(n), D(0)) == 0 for n in range(20, 100)), 'the end: R20-R99 cleared')
 check(c.pix == [] and c.grmod == 0 and c.grfnt == 20, 'the end: screen cleared, GRMOD 0, GRFNT 20')
 
+# ---------------------------------------------------------------- the stopwatch's 1/100 and its speed
+sn, c = S.run([(2, B), (2.5, B), (3, C), (6, C), (8, C), (9, A)], until=11)
+run = [s for s in sn if 3.5 < s.t < 5.9 and not s.diss]
+check(len(set(r(s, 55) for s in run)) >= 4, 'running: the 1/100 digit changes (%s)' % [r(s, 55) for s in run])
+check(len(run) / 2.4 > 3.5, 'running: about 4 updates a second (%.1f)' % (len(run) / 2.4))
+st = [s for s in sn if 6.6 < s.t < 7.9]
+check(st and all(r(s, 55) == 0 for s in st), 'stopped: the 1/100 digit 0')
+sp = [s for s in sn if 9.5 < s.t < 10.9]
+check(sp and all(r(s, 55) == 0 and r(s, 33) == 1 for s in sp), 'split: the 1/100 digit 0')
+
 # ---------------------------------------------------------------- standby (LBL :WAKE:)
 sn, c = S.run([(3, ('sleep', 600))], until=6)
 check(c.ended, 'standby: after 10 min with no key the program ends')

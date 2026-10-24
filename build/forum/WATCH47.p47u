@@ -72,6 +72,21 @@ DO 01                           ; ---- the buttons: 0 (82) the end; a key: LBL :
     XEQ 60                      ; -> :TICK:
     0
     STO 94
+    RCL 20                      ; the stopwatch running in its mode: PAUSE 1 (the tenths every 0.1 s or so), else PAUSE 2. X = running x
+    RCL 20                      ; (mode = 2): mode (mode - 1)(3 - mode) / 2 is 1 for the stopwatch mode only
+    1
+    -
+    ×
+    3
+    RCL 20
+    -
+    ×
+    2
+    ÷
+    RCL× 30
+    X≠0?
+    PAUSE 1
+    X=0?
     PAUSE 2
     KEY? 34
     XEQ 59                      ; -> :WAKE:
@@ -2353,7 +2368,18 @@ RCL 77
 10
 MOD
 STO 54
-0
+RCL 77                          ; the 1/100 (the C47 counts tenths: TICKS is 100 ms): while it runs (not split) a digit that changes at
+7                               ; every update, (7 E + 3) mod 10, as the real watch's blur; stopped or split: 0
+×
+3
++
+10
+MOD
+RCL× 30
+1
+RCL 33
+-
+×
 STO 55
 56
 STO 98
