@@ -85,8 +85,10 @@ DO 01                           ; ---- the buttons: 0 (82) the end; a key: LBL :
 WHILE 01
   XEQ 38                        ; -> :KEY:
 ENDDO 01
-20                              ; ---- 0: the end: R20-R99 cleared, GRMOD 0, GRFNT 20, the screen; the user's stack and LASTx back ----
-R-CLR                           ; R-CLR 20.00: R20 to R99 (a count of 0: to R99)
+20.79                           ; ---- 0: the end: R20-R99 cleared, GRMOD 0, GRFNT 20, the screen; the user's stack and LASTx back ----
+R-CLR                           ; R20-R98 (R-CLR 20.79: 20 + 79 must stay below 100; a count of 0 is refused on the C47), then R99
+0
+STO 99
 0
 GRMOD
 20
@@ -2836,8 +2838,10 @@ AGRAPH 83
 RTN
 LBL 94                          ; :INIT:  ---- LBL :INIT: the start: WOFF and WSET, the words, the screen, the clock ----
 WSIZE 64
-20                              ; the work registers cleared (they may hold the user's numbers)
-R-CLR                           ; R-CLR 20.00: R20 to R99 (a count of 0: to R99)
+20.79                           ; the work registers cleared (they may hold the user's numbers)
+R-CLR                           ; R20-R98 (R-CLR 20.79: 20 + 79 must stay below 100; a count of 0 is refused on the C47), then R99
+0
+STO 99
 0
 STO+ "WOFF"
 STO+ "WSET"

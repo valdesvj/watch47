@@ -43,6 +43,13 @@
 - watch47sim: an event (t, ('sleep', s)) moves the clock s seconds at a key wait with no key. Tests: 10 min ends
   the program cleanly, 5 s does not.
 
+## Oct 24, 2026 - "Invalid input data" at the start: R-CLR 20
+
+- Victor's C47 stopped at the start with "Invalid input data". A debug copy (WDBG, a number stored after each
+  stage of the start) showed it: R-CLR with X = 20 (no count; c47sim and Almanac 47's notes read it as "to R99")
+  is refused by the calculator. Now 20.79 R-CLR (R20-R98) and 0 STO 99, at the start and the end; the build
+  stops on an R-CLR with no count. To tell Almanac 47 (c47sim's R-CLR: a count of 0 is an error there).
+
 ## To do
 
 1. Run on Victor's C47 (convert build/WATCH47.txt with rejig): GRMOD 4 and BUZZ in a program are new here.

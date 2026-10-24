@@ -362,6 +362,11 @@ def build():
     steps = source_steps(lines)
     numeric, num = resolve(steps)
     numeric = structures(numeric)
+    # R-CLR takes sss.nn with a count: a whole number (a count of 0) gives "Invalid input data" on the C47
+    # (Victor's calculator, Oct 24 2026), though c47sim takes it as "to R99"
+    bad = [numeric[i - 1] for i, s in enumerate(numeric) if s == 'R-CLR' and re.fullmatch(r'\d+', numeric[i - 1])]
+    if bad:
+        raise SystemExit('R-CLR with no count (X = %s): write sss.nn' % bad[0])
     if [s for s in steps if s.startswith('LBL "')] != ['LBL "%s"' % NAME] or steps.count('END') != 1:
         raise SystemExit('one program, %s' % NAME)
     listing, n = [], 0

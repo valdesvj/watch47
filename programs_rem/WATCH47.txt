@@ -67,9 +67,11 @@ WHILE
   XEQ :KEY:
 ENDDO
 REM ---- 0: the end: R20-R99 cleared, GRMOD 0, GRFNT 20, the screen; the user's stack and LASTx back ----
-REM R-CLR 20.00: R20 to R99 (a count of 0: to R99)
-20
+REM R20-R98 (R-CLR 20.79: 20 + 79 must stay below 100; a count of 0 is refused on the C47), then R99
+20.79
 R-CLR
+0
+STO 99
 0
 GRMOD
 20
@@ -1268,9 +1270,11 @@ REM ---- LBL :INIT: the start: WOFF and WSET, the words, the screen, the clock -
 LBL :INIT:
 WSIZE 64
 REM the work registers cleared (they may hold the user's numbers)
-REM R-CLR 20.00: R20 to R99 (a count of 0: to R99)
-20
+REM R20-R98 (R-CLR 20.79: 20 + 79 must stay below 100; a count of 0 is refused on the C47), then R99
+20.79
 R-CLR
+0
+STO 99
 0
 STO+ "WOFF"
 STO+ "WSET"
