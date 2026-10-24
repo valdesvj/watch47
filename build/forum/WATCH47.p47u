@@ -1,0 +1,3521 @@
+@ Index:   Watch 47: a tribute to the classic three-button digital watch (alarm, chime, stopwatch, light)
+@ Author:  Victor Valdes
+@ Version: 0.1.0
+@ Source:  https://github.com/valdesvj/watch47
+@ Tested:  C47 simulator (python/c47sim.py, with a clock that runs): tests/test_watch47.py, every screen of the
+@ Tested:  scenarios against a picture drawn separately from the layout (python/layout.py), the times against
+@ Tested:  Python's datetime; not yet on a C47 (GRMOD 4 and BUZZ in a program, the KEY? codes 7 4 9 known)
+@ Input:   the buttons: 7 LIGHT, 4 MODE, 9 ALARM ON-OFF / 24H / START-STOP; 0 the end
+@ Output:  the calculator's time and date with seconds, 12 h (AM / PM) or 24 h, the day of the week;
+@ Output:  9 twice quickly shows C47
+@
+@ The time from the calculator's clock (an offset set on the watch is kept in WOFF); modes with 4: time,
+@ alarm (AL), stopwatch (ST), time setting. The alarm beeps 20 s (BUZZ), the hourly chime beeps once. The light
+@ (7) lights the LCD for 1.5 s with a pixel dissolve. The settings are kept in WSET.
+@ Your stack and LASTx are kept (STOS / RCLS in local registers); the registers R20-R99 are cleared at the
+@ start and the end.
+@ Needs a C47 / R47 firmware with ATEXT, GRFNT, AGRAPH, BUZZ and the STRUCT commands (WSIZE 64).
+@ The comments after ';' say what each part does (rejig drops them: they take no memory).
+@
+@ WATCH47 v0.1.0 - Watch 47: a tribute to the classic three-button digital watch, on the C47 / R47
+@ The time, the date and the seconds from the calculator's clock (plus an offset set on the watch), 12 h
+@ with AM / PM or 24 h; the daily alarm (it beeps 20 s: BUZZ), the hourly chime, the stopwatch (1/10 s:
+@ TICKS), the time setting; the light (a pixel dissolve); the Easter egg: 9 twice in the time mode shows C47.
+@ The three buttons are the C47 keys 7 (LIGHT), 4 (MODE) and 9 (ALARM ON-OFF / 24H / START-STOP); 0 ends.
+@ Modes (4 each time): time -> alarm (AL) -> stopwatch (ST) -> time setting -> time.
+@ time:      7 the light (1.5 s), 9 12 h / 24 h (twice quickly: C47 for 2 s, and the setting as it was)
+@ alarm:     9 alarm and chime: ALM -> ALM SIG -> SIG -> none; 7 set: the hour flashes, 9 + 1, 7 the
+@ minutes, 7 the hour again ...; 4 ends the setting (the alarm is on after a setting)
+@ stopwatch: 9 start / stop; 7 running: split (SPL) and back, stopped: reset
+@ setting:   7 the next field: seconds -> hour -> minutes -> month -> day; 9: seconds to 00 (from 30: the
+@ next minute), the others + 1; the day of the week from the date
+@ The settings are kept between runs in the global variables WSET (24 h, alarm, chime, the alarm time)
+@ and WOFF (the watch's offset from the calculator's clock, in days; 0 STO "WOFF" goes back to the clock).
+@ Screen 400 x 240, row 0 = bottom. The LCD's inside (x 93-306, rows 37-186) is drawn with AGRAPH words in
+@ bands of 64 rows from rows 37 and 101 (GRMOD 1: written as they are; lit: GRMOD 4, the inverse), so a
+@ cell needs no clearing and the light is the same drawing inverted. The light on or off: four XOR passes of
+@ a 4 x 4 ordered dither over the inside (the pixel effect, LBL :DISS:), then the flag R22.
+@ Cells (targets R50-R60, shown R61-R71): 0 1 the hour (or the stopwatch's minutes), 2 3 the minutes (its
+@ seconds), 4 5 the small digits (the seconds, its 1/10 s), 6 7 the date (the month when it is set),
+@ 8 the colon, 9 the letters (0-6 SU-SA, 7 AL, 8 ST), 10 the indicators (1 AM 2 PM 4 24H 8 ALM 16 SIG
+@ 32 SPL). A cell is drawn only when it changes. Codes of a digit: 0-9, 10 blank, 11 the C of C47.
+@ Labels: LBL 00-11 the big digits, LBL 12-22 the small ones (their AGRAPH words in R80-R82), LBL 23-31 the
+@ letters (column words, LBL :COL:), LBL 32-37 the indicators.
+@ Registers: R20 the mode (0 time, 1 alarm, 2 stopwatch, 3 setting), R21 the field (alarm 0 none 1 hour
+@ 2 minutes; setting 0 seconds 1 hour 2 minutes 3 month 4 day), R22 1 lit, R23 the TICKS the light ends,
+@ R24 1 24 h, R25 R26 the alarm's hour and minutes, R27 the alarm on, R28 the chime on, R29 the offset
+@ (days), R30 the stopwatch running, R31 its time before the start (1/10 s), R32 the TICKS of the start,
+@ R33 1 split shown, R34 the key, R35 the key before, R36 its TICKS, R37 the TICKS the alarm stops (0 none),
+@ R38 the TICKS the C47 ends (0 none), R39 the watch's seconds (from the JD's day 0), R40-R42 year month
+@ day, R43-R45 hours minutes seconds, R46 the weekday (0 Sunday), R47 the day number, R48 the minute
+@ number (a new minute: the alarm, the chime), R49 the flashing phase (TICKS / 5), R72 the split time,
+@ R73 a counter, R74 the code drawn, R75-R79 work, R80-R82 a glyph's words (the dither words R80-R83),
+@ R83 the scale (2^rows above the band), R84 the AGRAPH word, R85 x, R86 the band's row, R87 1 / 0 an
+@ indicator on / off, R88 the glyph labels' first, R89 R90 the side and middle columns of a digit, R92 R93
+@ the button shown inverted (x, row; 0 none), R94 23 ones, R95 the second of the last alarm beep,
+@ R96 TICKS now, R97 the cell, R98 the target of LBL :D2Z:, R99 work. R20-R99 cleared at the end.
+@ The user's stack and LASTx are kept (LocR 9: STOS R.00, LASTx in R.08).
+@ Control flow in the C47 STRUCT commands (IF / ELSE / ENDIF, DO / WHILE / ENDDO), indented two spaces
+@ per level; tools/build_watch47.py checks them, numbers them and fills the REM ==== lines and {NAME}s.
+@
+
+LBL "WATCH47"
+LocR 9
+STOS R.00
+LASTx
+STO R.08
+XEQ 93                          ; -> :INIT:
+DO 01                           ; ---- the buttons: 0 (82) the end; a key: LBL :KEY:; between keys the watch runs (LBL :TICK:, 0.2 s) ----
+  DO 02
+    XEQ 59                      ; -> :TICK:
+    PAUSE 2
+    KEY? 34
+  WHILE 02
+  ENDDO 02
+  RCL 34
+  82
+  X≠Y?
+WHILE 01
+  XEQ 38                        ; -> :KEY:
+ENDDO 01
+20                              ; ---- 0: the end: R20-R99 cleared, GRMOD 0, GRFNT 20, the screen; the user's stack and LASTx back ----
+R-CLR                           ; R-CLR 20.00: R20 to R99 (a count of 0: to R99)
+0
+GRMOD
+20
+GRFNT
+CLLCD
+RCL R.08
+STO L
+RCLS R.00
+RTN
+LBL 00                          ; big digit 0: the words of its side, middle, side columns  ==== GLYPHS (written by the build: LBL 00-22, the words of each digit; LBL 23-31 the letters; LBL 32-37
+562945675231104
+STO 80
+70931694131085375
+STO 81
+562945675231104
+STO 82
+RTN
+LBL 01                          ; big digit 1: the words of its side, middle, side columns
+0
+STO 80
+0
+STO 81
+562945675231104
+STO 82
+RTN
+LBL 02                          ; big digit 2: the words of its side, middle, side columns
+16777088
+STO 80
+70931696245014591
+STO 81
+562945658454016
+STO 82
+RTN
+LBL 03                          ; big digit 3: the words of its side, middle, side columns
+0
+STO 80
+70931696245014591
+STO 81
+562945675231104
+STO 82
+RTN
+LBL 04                          ; big digit 4: the words of its side, middle, side columns
+562945658454016
+STO 80
+2113929216
+STO 81
+562945675231104
+STO 82
+RTN
+LBL 05                          ; big digit 5: the words of its side, middle, side columns
+562945658454016
+STO 80
+70931696245014591
+STO 81
+16777088
+STO 82
+RTN
+LBL 06                          ; big digit 6: the words of its side, middle, side columns
+562945675231104
+STO 80
+70931696245014591
+STO 81
+16777088
+STO 82
+RTN
+LBL 07                          ; big digit 7: the words of its side, middle, side columns
+0
+STO 80
+70931694131085312
+STO 81
+562945675231104
+STO 82
+RTN
+LBL 08                          ; big digit 8: the words of its side, middle, side columns
+562945675231104
+STO 80
+70931696245014591
+STO 81
+562945675231104
+STO 82
+RTN
+LBL 09                          ; big digit 9: the words of its side, middle, side columns
+562945658454016
+STO 80
+70931696245014591
+STO 81
+562945675231104
+STO 82
+RTN
+LBL 10                          ; big digit 10: the words of its side, middle, side columns
+0
+STO 80
+0
+STO 81
+0
+STO 82
+RTN
+LBL 11                          ; big digit C (C47): the words of its side, middle, side columns
+562945675231104
+STO 80
+70931694131085375
+STO 81
+0
+STO 82
+RTN
+LBL 12                          ; small digit 0: its words
+33296352
+STO 80
+1006632975
+STO 81
+33296352
+STO 82
+RTN
+LBL 13                          ; small digit 1: its words
+0
+STO 80
+0
+STO 81
+33296352
+STO 82
+RTN
+LBL 14                          ; small digit 2: its words
+4064
+STO 80
+1006755855
+STO 81
+33292288
+STO 82
+RTN
+LBL 15                          ; small digit 3: its words
+0
+STO 80
+1006755855
+STO 81
+33296352
+STO 82
+RTN
+LBL 16                          ; small digit 4: its words
+33292288
+STO 80
+122880
+STO 81
+33296352
+STO 82
+RTN
+LBL 17                          ; small digit 5: its words
+33292288
+STO 80
+1006755855
+STO 81
+4064
+STO 82
+RTN
+LBL 18                          ; small digit 6: its words
+33296352
+STO 80
+1006755855
+STO 81
+4064
+STO 82
+RTN
+LBL 19                          ; small digit 7: its words
+0
+STO 80
+1006632960
+STO 81
+33296352
+STO 82
+RTN
+LBL 20                          ; small digit 8: its words
+33296352
+STO 80
+1006755855
+STO 81
+33296352
+STO 82
+RTN
+LBL 21                          ; small digit 9: its words
+33292288
+STO 80
+1006755855
+STO 81
+33296352
+STO 82
+RTN
+LBL 22                          ; small digit blank: its words
+0
+STO 80
+0
+STO 81
+0
+STO 82
+RTN
+LBL 23                          ; the letters SU: x, then each column (LBL :COL:)
+104
+STO 85
+4177980
+XEQ 87                          ; -> :COL:
+4177980
+XEQ 87                          ; -> :COL:
+16773183
+XEQ 87                          ; -> :COL:
+16773183
+XEQ 87                          ; -> :COL:
+15790095
+XEQ 87                          ; -> :COL:
+15790095
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15732495
+XEQ 87                          ; -> :COL:
+15732495
+XEQ 87                          ; -> :COL:
+16519167
+XEQ 87                          ; -> :COL:
+16519167
+XEQ 87                          ; -> :COL:
+3933180
+XEQ 87                          ; -> :COL:
+3933180
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+16777212
+XEQ 87                          ; -> :COL:
+16777212
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+16777212
+XEQ 87                          ; -> :COL:
+16777212
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 24                          ; the letters MO: x, then each column (LBL :COL:)
+104
+STO 85
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+4128768
+XEQ 87                          ; -> :COL:
+4128768
+XEQ 87                          ; -> :COL:
+1032192
+XEQ 87                          ; -> :COL:
+1032192
+XEQ 87                          ; -> :COL:
+261120
+XEQ 87                          ; -> :COL:
+261120
+XEQ 87                          ; -> :COL:
+261120
+XEQ 87                          ; -> :COL:
+261120
+XEQ 87                          ; -> :COL:
+1032192
+XEQ 87                          ; -> :COL:
+1032192
+XEQ 87                          ; -> :COL:
+4128768
+XEQ 87                          ; -> :COL:
+4128768
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+1048560
+XEQ 87                          ; -> :COL:
+1048560
+XEQ 87                          ; -> :COL:
+4194300
+XEQ 87                          ; -> :COL:
+4194300
+XEQ 87                          ; -> :COL:
+16515135
+XEQ 87                          ; -> :COL:
+16515135
+XEQ 87                          ; -> :COL:
+15728655
+XEQ 87                          ; -> :COL:
+15728655
+XEQ 87                          ; -> :COL:
+15728655
+XEQ 87                          ; -> :COL:
+15728655
+XEQ 87                          ; -> :COL:
+16515135
+XEQ 87                          ; -> :COL:
+16515135
+XEQ 87                          ; -> :COL:
+4194300
+XEQ 87                          ; -> :COL:
+4194300
+XEQ 87                          ; -> :COL:
+1048560
+XEQ 87                          ; -> :COL:
+1048560
+XEQ 87                          ; -> :COL:
+RTN
+LBL 25                          ; the letters TU: x, then each column (LBL :COL:)
+104
+STO 85
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+16777212
+XEQ 87                          ; -> :COL:
+16777212
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+16777212
+XEQ 87                          ; -> :COL:
+16777212
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 26                          ; the letters WE: x, then each column (LBL :COL:)
+104
+STO 85
+16777200
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+255
+XEQ 87                          ; -> :COL:
+255
+XEQ 87                          ; -> :COL:
+4080
+XEQ 87                          ; -> :COL:
+4080
+XEQ 87                          ; -> :COL:
+261888
+XEQ 87                          ; -> :COL:
+261888
+XEQ 87                          ; -> :COL:
+261888
+XEQ 87                          ; -> :COL:
+261888
+XEQ 87                          ; -> :COL:
+4080
+XEQ 87                          ; -> :COL:
+4080
+XEQ 87                          ; -> :COL:
+255
+XEQ 87                          ; -> :COL:
+255
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+16777200
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15728655
+XEQ 87                          ; -> :COL:
+15728655
+XEQ 87                          ; -> :COL:
+RTN
+LBL 27                          ; the letters TH: x, then each column (LBL :COL:)
+104
+STO 85
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+15360
+XEQ 87                          ; -> :COL:
+15360
+XEQ 87                          ; -> :COL:
+15360
+XEQ 87                          ; -> :COL:
+15360
+XEQ 87                          ; -> :COL:
+15360
+XEQ 87                          ; -> :COL:
+15360
+XEQ 87                          ; -> :COL:
+15360
+XEQ 87                          ; -> :COL:
+15360
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 28                          ; the letters FR: x, then each column (LBL :COL:)
+104
+STO 85
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15744000
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+15990783
+XEQ 87                          ; -> :COL:
+15990783
+XEQ 87                          ; -> :COL:
+15732480
+XEQ 87                          ; -> :COL:
+15732480
+XEQ 87                          ; -> :COL:
+15732672
+XEQ 87                          ; -> :COL:
+15732672
+XEQ 87                          ; -> :COL:
+15732720
+XEQ 87                          ; -> :COL:
+15732720
+XEQ 87                          ; -> :COL:
+16531452
+XEQ 87                          ; -> :COL:
+16531452
+XEQ 87                          ; -> :COL:
+4193343
+XEQ 87                          ; -> :COL:
+4193343
+XEQ 87                          ; -> :COL:
+1044495
+XEQ 87                          ; -> :COL:
+1044495
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 29                          ; the letters SA: x, then each column (LBL :COL:)
+104
+STO 85
+4177980
+XEQ 87                          ; -> :COL:
+4177980
+XEQ 87                          ; -> :COL:
+16773183
+XEQ 87                          ; -> :COL:
+16773183
+XEQ 87                          ; -> :COL:
+15790095
+XEQ 87                          ; -> :COL:
+15790095
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15732495
+XEQ 87                          ; -> :COL:
+15732495
+XEQ 87                          ; -> :COL:
+16519167
+XEQ 87                          ; -> :COL:
+16519167
+XEQ 87                          ; -> :COL:
+3933180
+XEQ 87                          ; -> :COL:
+3933180
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+4095
+XEQ 87                          ; -> :COL:
+4095
+XEQ 87                          ; -> :COL:
+262128
+XEQ 87                          ; -> :COL:
+262128
+XEQ 87                          ; -> :COL:
+4190448
+XEQ 87                          ; -> :COL:
+4190448
+XEQ 87                          ; -> :COL:
+16515312
+XEQ 87                          ; -> :COL:
+16515312
+XEQ 87                          ; -> :COL:
+4190448
+XEQ 87                          ; -> :COL:
+4190448
+XEQ 87                          ; -> :COL:
+262128
+XEQ 87                          ; -> :COL:
+262128
+XEQ 87                          ; -> :COL:
+4095
+XEQ 87                          ; -> :COL:
+4095
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 30                          ; the letters AL: x, then each column (LBL :COL:)
+104
+STO 85
+63
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+4095
+XEQ 87                          ; -> :COL:
+4095
+XEQ 87                          ; -> :COL:
+262128
+XEQ 87                          ; -> :COL:
+262128
+XEQ 87                          ; -> :COL:
+4190448
+XEQ 87                          ; -> :COL:
+4190448
+XEQ 87                          ; -> :COL:
+16515312
+XEQ 87                          ; -> :COL:
+16515312
+XEQ 87                          ; -> :COL:
+4190448
+XEQ 87                          ; -> :COL:
+4190448
+XEQ 87                          ; -> :COL:
+262128
+XEQ 87                          ; -> :COL:
+262128
+XEQ 87                          ; -> :COL:
+4095
+XEQ 87                          ; -> :COL:
+4095
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+63
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+15
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 31                          ; the letters ST: x, then each column (LBL :COL:)
+104
+STO 85
+4177980
+XEQ 87                          ; -> :COL:
+4177980
+XEQ 87                          ; -> :COL:
+16773183
+XEQ 87                          ; -> :COL:
+16773183
+XEQ 87                          ; -> :COL:
+15790095
+XEQ 87                          ; -> :COL:
+15790095
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15744015
+XEQ 87                          ; -> :COL:
+15732495
+XEQ 87                          ; -> :COL:
+15732495
+XEQ 87                          ; -> :COL:
+16519167
+XEQ 87                          ; -> :COL:
+16519167
+XEQ 87                          ; -> :COL:
+3933180
+XEQ 87                          ; -> :COL:
+3933180
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+16777215
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+15728640
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 32                          ; the indicator AM: x, then each column
+158
+STO 85
+31
+XEQ 87                          ; -> :COL:
+36
+XEQ 87                          ; -> :COL:
+68
+XEQ 87                          ; -> :COL:
+36
+XEQ 87                          ; -> :COL:
+31
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+32
+XEQ 87                          ; -> :COL:
+24
+XEQ 87                          ; -> :COL:
+32
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 33                          ; the indicator PM: x, then each column
+158
+STO 85
+127
+XEQ 87                          ; -> :COL:
+72
+XEQ 87                          ; -> :COL:
+72
+XEQ 87                          ; -> :COL:
+72
+XEQ 87                          ; -> :COL:
+48
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+32
+XEQ 87                          ; -> :COL:
+24
+XEQ 87                          ; -> :COL:
+32
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 34                          ; the indicator 24H: x, then each column
+158
+STO 85
+35
+XEQ 87                          ; -> :COL:
+69
+XEQ 87                          ; -> :COL:
+73
+XEQ 87                          ; -> :COL:
+73
+XEQ 87                          ; -> :COL:
+49
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+12
+XEQ 87                          ; -> :COL:
+20
+XEQ 87                          ; -> :COL:
+36
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+4
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+8
+XEQ 87                          ; -> :COL:
+8
+XEQ 87                          ; -> :COL:
+8
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 35                          ; the indicator ALM: x, then each column
+180
+STO 85
+31
+XEQ 87                          ; -> :COL:
+36
+XEQ 87                          ; -> :COL:
+68
+XEQ 87                          ; -> :COL:
+36
+XEQ 87                          ; -> :COL:
+31
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+1
+XEQ 87                          ; -> :COL:
+1
+XEQ 87                          ; -> :COL:
+1
+XEQ 87                          ; -> :COL:
+1
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+32
+XEQ 87                          ; -> :COL:
+24
+XEQ 87                          ; -> :COL:
+32
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 36                          ; the indicator SIG: x, then each column
+202
+STO 85
+50
+XEQ 87                          ; -> :COL:
+73
+XEQ 87                          ; -> :COL:
+73
+XEQ 87                          ; -> :COL:
+73
+XEQ 87                          ; -> :COL:
+38
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+65
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+65
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+62
+XEQ 87                          ; -> :COL:
+65
+XEQ 87                          ; -> :COL:
+65
+XEQ 87                          ; -> :COL:
+73
+XEQ 87                          ; -> :COL:
+47
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 37                          ; the indicator SPL: x, then each column
+224
+STO 85
+50
+XEQ 87                          ; -> :COL:
+73
+XEQ 87                          ; -> :COL:
+73
+XEQ 87                          ; -> :COL:
+73
+XEQ 87                          ; -> :COL:
+38
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+72
+XEQ 87                          ; -> :COL:
+72
+XEQ 87                          ; -> :COL:
+72
+XEQ 87                          ; -> :COL:
+48
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+127
+XEQ 87                          ; -> :COL:
+1
+XEQ 87                          ; -> :COL:
+1
+XEQ 87                          ; -> :COL:
+1
+XEQ 87                          ; -> :COL:
+1
+XEQ 87                          ; -> :COL:
+0
+XEQ 87                          ; -> :COL:
+RTN
+LBL 38                          ; :KEY:  the indicators)
+TICKS                           ; ======== the buttons ========
+STO 96                          ; ---- LBL :KEY: the key R34: the alarm beeping: any button stops it (and does nothing else); 7 (52),
+RCL 37                          ; 4 (62), 9 (54); then it is the key before (R35, R36) ----
+X≠0?
+GTO 39                          ; -> :KSTOP:
+RCL 34
+52
+X=Y?
+XEQ 40                          ; -> :KA:
+RCL 34
+62
+X=Y?
+XEQ 44                          ; -> :KB:
+RCL 34
+54
+X=Y?
+XEQ 45                          ; -> :KC:
+RCL 34
+STO 35
+RCL 96
+STO 36
+RTN
+LBL 39                          ; :KSTOP:
+0
+STO 37
+RTN
+LBL 40                          ; :KA:  ---- LBL :KA: 7 (LIGHT): time: the light; alarm: the setting (hour, minutes, hour ...); stopwatch:
+54                              ; split / reset; setting: the next field ----
+148
+XEQ 57                          ; -> :HL:
+RCL 20
+X=0?
+GTO 43                          ; -> :LIGHT:
+RCL 20
+1
+X=Y?
+GTO 41                          ; -> :KA1:
+RCL 20
+2
+X=Y?
+GTO 42                          ; -> :KA2:
+RCL 21
+1
++
+5
+MOD
+STO 21
+RTN
+LBL 41                          ; :KA1:  the alarm's field: 0 -> 1, 1 -> 2, 2 -> 1
+RCL 21
+2
+MOD
+1
++
+STO 21
+RTN
+LBL 42                          ; :KA2:  split shown: back to the running time; running: split (the time now kept, SPL); stopped: reset. No
+RCL 33                          ; branch: the time so far x (split + running not 0: X≠0? 1); split = (1 - split) x running; R72 the time now
+RCL 30
++
+X≠0?
+1
+RCL× 31
+STO 31
+XEQ 68                          ; -> :SWE:
+STO 72
+1
+RCL 33
+-
+RCL× 30
+STO 33
+RTN
+LBL 43                          ; :LIGHT:  LBL :LIGHT: lit until now + 1.5 s (R23); not lit yet: the dissolve on
+RCL 96
+15
++
+STO 23
+RCL 22
+X≠0?
+RTN
+XEQ 90                          ; -> :DISS:
+1
+STO 22
+RTN
+LBL 44                          ; :KB:  ---- LBL :KB: 4 (MODE): the alarm being set: the setting ends; else the next mode (field 0); no C47.
+54                              ; No branch: the mode + 1 - e, e = (mode is 1) x (a field): mode(2 - mode)(3 - mode)/2 is 1 for 1 only ----
+60
+XEQ 57                          ; -> :HL:
+0
+STO 38
+RCL 21
+X≠0?
+1
+RCL 20
+×
+2
+RCL 20
+-
+×
+3
+RCL 20
+-
+×
+2
+÷
+1
+X<>Y
+-
+RCL 20
++
+4
+MOD
+STO 20
+0
+STO 21
+RTN
+LBL 45                          ; :KC:  ---- LBL :KC: 9: time: 12 / 24 h (twice in 1 s: C47 2 s); alarm: on / chime, or + 1 in the setting;
+336                             ; stopwatch: start / stop; setting: LBL :KC3: ----
+148
+XEQ 57                          ; -> :HL:
+RCL 20
+1
+X=Y?
+GTO 46                          ; -> :KC1:
+RCL 20
+2
+X=Y?
+GTO 48                          ; -> :KC2:
+RCL 20
+3
+X=Y?
+GTO 49                          ; -> :KC3:
+1
+RCL 24
+-
+STO 24
+XEQ 56                          ; -> :SAVE:
+RCL 35                          ; the key before also 9, at most 1 s ago (10 TICKS): C47 until now + 2 s
+54
+X≠Y?
+RTN
+RCL 96
+RCL 36
+-
+10
+X<Y?
+RTN
+RCL 96
+20
++
+STO 38
+RTN
+LBL 46                          ; :KC1:  alarm, no field: the state k = (1 - alarm)(3 - chime) + alarm x chime (0 ALM, 1 ALM SIG, 2 SIG,
+RCL 21                          ; 3 none) + 1 mod 4: alarm = IP((3 - k) / 2), chime = IP((k + 1) / 2) mod 2; a field: the hour + (2 - field),
+X≠0?                            ; the minutes + (field - 1), the alarm on
+GTO 47                          ; -> :KC1S:
+1
+RCL 27
+-
+3
+RCL 28
+-
+×
+RCL 27
+RCL 28
+×
++
+1
++
+4
+MOD
+STO 79
+3
+X<>Y
+-
+2
+÷
+IP
+STO 27
+RCL 79
+1
++
+2
+÷
+IP
+2
+MOD
+STO 28
+GTO 56                          ; -> :SAVE:
+LBL 47                          ; :KC1S:
+RCL 25
+2
++
+RCL 21
+-
+24
+MOD
+STO 25
+RCL 26
+RCL 21
++
+1
+-
+60
+MOD
+STO 26
+1
+STO 27
+GTO 56                          ; -> :SAVE:
+LBL 48                          ; :KC2:  stopwatch: the time so far kept (R31), the start now, running 1 - running (stopped: R31 stays)
+XEQ 68                          ; -> :SWE:
+STO 31
+RCL 96
+STO 32
+1
+RCL 30
+-
+STO 30
+RTN
+LBL 49                          ; :KC3:  ---- LBL :KC3: the setting, field R21: 0 the seconds to 00 (- ss, + 60 from 30), 1 the hour + 1 (23:
+RCL 21                          ; - 23 h), 2 the minutes + 1 (59: - 59), in seconds (LBL :KCSEC: picks them); 3 the month + 1 (the day
+3                               ; kept, at most the month's last), 4 the day + 1 (the last: 1), in days (LBL :KCDAY:) ----
+X≤Y?
+GTO 50                          ; -> :KCDAY:
+RCL 45                          ; the three deltas: d0 = 60 IP(ss / 30) - ss, d1 = 3600 - 86400 IP(hh / 23), d2 = 60 - 3600 IP(mm / 59);
+30                              ; chosen by the field f: d0 (f - 1)(f - 2) / 2 + d1 f (2 - f) + d2 f (f - 1) / 2
+÷
+IP
+60
+×
+RCL 45
+-
+RCL 21
+1
+-
+×
+RCL 21
+2
+-
+×
+2
+÷
+STO 79
+RCL 43
+23
+÷
+IP
+-86400
+×
+3600
++
+RCL 21
+×
+2
+RCL 21
+-
+×
+STO+ 79
+RCL 44
+59
+÷
+IP
+-3600
+×
+60
++
+RCL 21
+×
+RCL 21
+1
+-
+×
+2
+÷
+RCL 79
++
+86400
+÷
+GTO 53                          ; -> :OFFS:
+LBL 50                          ; :KCDAY:  the month or the day: the new date (R75 y, R76 m, R77 d) -> LBL :JDN: - the day number now (R47)
+RCL 40
+STO 75
+RCL 41
+STO 76
+1
+STO 77
+XEQ 54                          ; -> :MLEN:
+STO 78
+RCL 21
+4
+X=Y?
+GTO 51                          ; -> :KCD4:
+RCL 41
+12
+MOD
+1
++
+STO 76
+XEQ 54                          ; -> :MLEN:
+RCL 42
+X>Y?
+X<>Y
+STO 77
+GTO 52                          ; -> :KCD5:
+LBL 51                          ; :KCD4:
+RCL 42
+RCL 78
+MOD
+1
++
+STO 77
+LBL 52                          ; :KCD5:
+XEQ 55                          ; -> :JDN:
+RCL 47
+-
+LBL 53                          ; :OFFS:  LBL :OFFS: X days more on the watch's offset (kept in WOFF)
+STO+ 29
+RCL 29
+STO "WOFF"
+RTN
+LBL 54                          ; :MLEN:  LBL :MLEN: the days of the month R76 of the year R75: the 1st of the next month - the 1st (R77 1)
+1
+STO 77
+RCL 76
+1
++
+STO 76
+XEQ 55                          ; -> :JDN:
+STO 79
+1
+STO- 76
+XEQ 55                          ; -> :JDN:
+RCL 79
+X<>Y
+-
+RTN
+LBL 55                          ; :JDN:  ---- LBL :JDN: the day number of R75 y, R76 m (13: January of y + 1), R77 d: a = (14 - m) div 12,
+14                              ; y' = y + 4800 - a, m' = m + 12a - 3, N = d + (153m' + 2) div 5 + 365y' + y' div 4 - y' div 100
+RCL 76                          ; + y' div 400 - 32045 (R99 a, then y'; X m') ----
+-
+12
+÷
+IP
+STO 99
+12
+×
+RCL 76
++
+3
+-
+153
+×
+2
++
+5
+÷
+IP
+RCL 77
++
+RCL 75
+4800
++
+RCL 99
+-
+STO 99
+365
+×
++
+RCL 99
+4
+÷
+IP
++
+RCL 99
+100
+÷
+IP
+-
+RCL 99
+400
+÷
+IP
++
+32045
+-
+RTN
+LBL 56                          ; :SAVE:  LBL :SAVE: WSET = 24h + 2 alarm + 4 chime + 10 (100 hour + minutes) of the alarm
+RCL 25
+100
+×
+RCL 26
++
+10
+×
+RCL 28
+4
+×
++
+RCL 27
+2
+×
++
+RCL 24
++
+STO "WSET"
+RTN
+LBL 57                          ; :HL:  ---- LBL :HL: the button at x Y, row X shown inverted, the one before inverted again (LBL :HLX:) ----
+STO 77
+R↓
+STO 76
+XEQ 58                          ; -> :HLX:
+RCL 76
+STO 92
+RCL 77
+STO 93
+XEQ 58                          ; -> :HLX:
+RTN
+LBL 58                          ; :HLX:  LBL :HLX: the inside of the button R92, R93 (8 x 23, XOR); none when R93 = 0
+RCL 93
+X=0?
+RTN
+RCL 94
+STO 84
+3
+GRMOD
+RCL 93
+1
++
+RCL 92
+1
++
+8
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+RTN
+LBL 59                          ; :TICK:  ======== the watch running ========
+TICKS                           ; ---- LBL :TICK: the time (LBL :NOW:), the light's end, the C47's end, the alarm's beeps, the flashing
+STO 96                          ; phase; then the display (LBL :UPD:) ----
+XEQ 63                          ; -> :NOW:
+RCL 22
+X≠0?
+XEQ 60                          ; -> :LTO:
+RCL 38
+X≠0?
+XEQ 61                          ; -> :ETO:
+RCL 37
+X≠0?
+XEQ 62                          ; -> :RING:
+RCL 96
+5
+÷
+IP
+2
+MOD
+STO 49
+GTO 69                          ; -> :UPD:
+LBL 60                          ; :LTO:  LBL :LTO: the light off when R23 is past: the dissolve back
+RCL 23
+RCL 96
+X<Y?
+RTN
+XEQ 90                          ; -> :DISS:
+0
+STO 22
+RTN
+LBL 61                          ; :ETO:  LBL :ETO: the C47 off when R38 is past
+RCL 38
+RCL 96
+X<Y?
+RTN
+0
+STO 38
+RTN
+LBL 62                          ; :RING:  LBL :RING: the alarm: past R37: off; else at each new second four beeps (2048 Hz, 60 ms on, 60 ms off)
+RCL 37
+RCL 96
+X≥Y?
+GTO 39                          ; -> :KSTOP:
+RCL 45
+RCL 95
+X=Y?
+RTN
+RCL 45
+STO 95
+2048                            ; ==== BEEPS (written by the build: 4 x the beep and the silence, BUZZ Y Hz X ms)
+60
+BUZZ
+0
+60
+BUZZ
+2048
+60
+BUZZ
+0
+60
+BUZZ
+2048
+60
+BUZZ
+0
+60
+BUZZ
+2048
+60
+BUZZ
+0
+60
+BUZZ
+RTN
+LBL 63                          ; :NOW:  ---- LBL :NOW: the watch's time: the clock's JD + the offset, in seconds R39 = IP((JD + 0.5) 86400 + 0.5);
+Date→ⅅ                          ; a new day: the date (LBL :NEWDAY:); hh mm ss; a new minute: the alarm, the chime (LBL :NEWMIN:) ----
+Time→ℸ
+ⅅℸ→J
+RCL+ 29
+0.5
++
+86400
+×
+0.5
++
+IP
+STO 39
+86400
+÷
+IP
+RCL 47
+X≠Y?
+XEQ 64                          ; -> :NEWDAY:
+RCL 39
+86400
+MOD
+STO 75
+3600
+÷
+IP
+STO 43
+RCL 75
+60
+÷
+IP
+60
+MOD
+STO 44
+RCL 75
+60
+MOD
+STO 45
+RCL 39
+60
+÷
+IP
+RCL 48
+X≠Y?
+XEQ 65                          ; -> :NEWMIN:
+RTN
+LBL 64                          ; :NEWDAY:  LBL :NEWDAY: X the old day number, Y the new: R47; its date (LBL :CAL:) and weekday ((N + 1) mod 7)
+X<>Y
+STO 47
+1
++
+7
+MOD
+STO 46
+GTO 67                          ; -> :CAL:
+LBL 65                          ; :NEWMIN:  LBL :NEWMIN: X the old minute, Y the new: R48; at the start (old -1) nothing; the alarm's minute and the
+X<>Y                            ; alarm on: it rings 20 s (R37); else a new hour and the chime on: one beep (not while it rings)
+STO 48
+X<>Y
+X<0?
+RTN
+RCL 27
+X=0?
+GTO 66                          ; -> :CHIME:
+RCL 43
+RCL 25
+X≠Y?
+GTO 66                          ; -> :CHIME:
+RCL 44
+RCL 26
+X≠Y?
+GTO 66                          ; -> :CHIME:
+RCL 96
+200
++
+STO 37
+-1
+STO 95
+RTN
+LBL 66                          ; :CHIME:
+RCL 28
+X=0?
+RTN
+RCL 44
+X≠0?
+RTN
+RCL 37
+X≠0?
+RTN
+2048                            ; ==== CHIME (written by the build: one beep, BUZZ)
+100
+BUZZ
+RTN
+LBL 67                          ; :CAL:  ---- LBL :CAL: the date of the day number R47 (Fliegel and Van Flandern, as Zones 47): a = N + 32044,
+RCL 47                          ; b = (4a + 3) div 146097, c = a - 146097b div 4, d = (4c + 3) div 1461, e = c - 1461d div 4,
+32044                           ; m = (5e + 2) div 153; day = e - (153m + 2) div 5 + 1, month = m + 3 - 12 (m div 10), year = 100b + d
++                               ; - 4800 + m div 10 (R75 a c e, R76 b, R77 d, R78 m) ----
+STO 75
+4
+×
+3
++
+146097
+÷
+IP
+STO 76
+146097
+×
+4
+÷
+IP
+STO- 75
+RCL 75
+4
+×
+3
++
+1461
+÷
+IP
+STO 77
+1461
+×
+4
+÷
+IP
+STO- 75
+RCL 75
+5
+×
+2
++
+153
+÷
+IP
+STO 78
+153
+×
+2
++
+5
+÷
+IP
+RCL 75
+X<>Y
+-
+1
++
+STO 42
+RCL 78
+10
+÷
+IP
+STO 79
+-12
+×
+RCL 78
++
+3
++
+STO 41
+RCL 76
+100
+×
+RCL 77
++
+4800
+-
+RCL 79
++
+STO 40
+RTN
+LBL 68                          ; :SWE:  ---- LBL :SWE: the stopwatch's time (1/10 s): R31 + running x (TICKS now - the start) ----
+RCL 96
+RCL 32
+-
+RCL 30
+×
+RCL 31
++
+RTN
+LBL 69                          ; :UPD:  ======== the display ========
+XEQ 72                          ; -> :COMP:  ---- LBL :UPD: the targets (LBL :COMP:), then every cell whose target is not what is shown (LBL :CELL:) ----
+0
+STO 97
+DO 03
+  RCL 97
+  50
+  +
+  STO 75
+  RCL 97
+  61
+  +
+  STO 76
+  RCL IND 75
+  RCL IND 76
+  X≠Y?
+  XEQ 70                        ; -> :CELL:
+  1
+  STO+ 97
+  11
+  RCL 97
+  X<Y?
+WHILE 03
+ENDDO 03
+RTN
+LBL 70                          ; :CELL:  LBL :CELL: the target kept as shown, its code in R74; the cell's drawer and place (the build writes
+RCL IND 75                      ; them from python/layout.py: the big digits' x by arithmetic, the small ones' x, band and scale)
+STO IND 76
+STO 74
+RCL 97                          ; ==== CELL
+8
+X=Y?
+GTO 83                          ; -> :DCLN:
+RCL 97
+9
+X=Y?
+GTO 84                          ; -> :DDAY:
+RCL 97
+10
+X=Y?
+GTO 85                          ; -> :DIND:
+RCL 97
+4
+X≤Y?
+GTO 71                          ; -> :CSML:
+RCL 97
+2
+MOD
+36
+×
+RCL 97
+2
+÷
+IP
+86
+×
++
+102
++
+STO 85
+37
+STO 86
+128
+STO 83
+6
+STO 89
+18
+STO 90
+0
+STO 88
+GTO 82                          ; -> :DDIG:
+LBL 71                          ; :CSML:
+RCL 97
+4
+-
+STO 79
+2
+MOD
+20
+×
+RCL 79
+2
+÷
+IP
+STO 79
+-2
+×
++
+264
++
+STO 85
+RCL 79
+64
+×
+37
++
+STO 86
+RCL 79
+536870784
+×
+128
++
+STO 83
+4
+STO 89
+9
+STO 90
+12
+STO 88
+GTO 82                          ; -> :DDIG:
+LBL 72                          ; :COMP:  ---- LBL :COMP: the targets: the colon on; ALM (alarm on) and SIG (chime on), ALM flashing while it
+1                               ; rings; then the mode's ----
+STO 58
+RCL 27
+8
+×
+RCL 28
+16
+×
++
+STO 60
+RCL 37
+X≠0?
+1
+RCL 49
+×
+8
+×
+STO- 60
+RCL 20
+1
+X=Y?
+GTO 80                          ; -> :CALM:
+RCL 20
+2
+X=Y?
+GTO 81                          ; -> :CSW:
+RCL 43                          ; the time (and the setting): the hour (LBL :HOUR:), the minutes, the seconds, the date, the weekday
+XEQ 73                          ; -> :HOUR:
+RCL 44
+52
+XEQ 74                          ; -> :D2Z:
+RCL 45
+54
+XEQ 74                          ; -> :D2Z:
+RCL 42
+56
+XEQ 75                          ; -> :D2B:
+RCL 46
+STO 59
+RCL 20
+3
+X=Y?
+XEQ 76                          ; -> :CSET:
+RCL 38
+X≠0?
+XEQ 79                          ; -> :EGG:
+RTN
+LBL 73                          ; :HOUR:  LBL :HOUR: the hour X in cells 0 1: 24 h: 24H; 12 h: AM (h < 12) or PM, the hour (h + 11) mod 12 + 1
+STO 78                          ; (no branch: the indicator + 4 x 24h + (1 - 24h)(1 + IP(h / 12)); the hour h + (1 - 24h)(h12 - h))
+1
+RCL 24
+-
+STO 79
+RCL 78
+12
+÷
+IP
+1
++
+RCL× 79
+RCL 24
+4
+×
++
+STO+ 60
+RCL 78
+11
++
+12
+MOD
+1
++
+RCL 78
+-
+RCL× 79
+RCL 78
++
+50
+GTO 75                          ; -> :D2B:
+LBL 74                          ; :D2Z:  LBL :D2Z: the value Y (0-99) in the cells X, X + 1 (tens, units); LBL :D2B: the tens blank when 0
+STO 98
+R↓
+STO 79
+10
+÷
+IP
+STO IND 98
+RCL 79
+10
+MOD
+1
+STO+ 98
+R↓
+STO IND 98
+RTN
+LBL 75                          ; :D2B:
+XEQ 74                          ; -> :D2Z:
+1
+STO- 98
+RCL IND 98
+X≠0?
+RTN
+10
+STO IND 98
+RTN
+LBL 76                          ; :CSET:  LBL :CSET: the setting: the month field shows the month; the field blank in the off phase: its first
+RCL 21                          ; cell is the character code of the text "62488" at the field (6 = 54 the seconds, 2 = 50 the hour ...)
+3
+X=Y?
+XEQ 78                          ; -> :CMON:
+RCL 49
+X≠0?
+RTN
+"62488"
+STO 77
+RCL 21
+αSL 77
+α→𝑥 77
+STO 98
+LBL 77                          ; :BLK2:  LBL :BLK2: the cells R98 and R98 + 1 blank
+10
+STO IND 98
+1
+STO+ 98
+10
+STO IND 98
+RTN
+LBL 78                          ; :CMON:
+RCL 41
+56
+GTO 75                          ; -> :D2B:
+LBL 79                          ; :EGG:  LBL :EGG: C47 in the big digits: blank C 4 7, no colon, no seconds
+10
+STO 50
+11
+STO 51
+4
+STO 52
+7
+STO 53
+0
+STO 58
+54
+STO 98
+GTO 77                          ; -> :BLK2:
+LBL 80                          ; :CALM:  LBL :CALM: the alarm: AL, its time, no seconds or date; a field blank in the off phase
+7
+STO 59
+RCL 25
+XEQ 73                          ; -> :HOUR:
+RCL 26
+52
+XEQ 74                          ; -> :D2Z:
+54
+STO 98
+XEQ 77                          ; -> :BLK2:
+56
+STO 98
+XEQ 77                          ; -> :BLK2:
+RCL 21
+X=0?
+RTN
+RCL 49
+X≠0?
+RTN
+RCL 21
+2
+×
+48
++
+STO 98
+GTO 77                          ; -> :BLK2:
+LBL 81                          ; :CSW:  LBL :CSW: the stopwatch: ST; its time E (the split shown: R72), minutes (60), seconds, 1/10 s and 0;
+8                               ; SPL when split
+STO 59
+XEQ 68                          ; -> :SWE:
+STO 77
+RCL 72
+RCL 77
+-
+RCL 33
+×
+RCL+ 77
+STO 77
+RCL 33
+32
+×
+STO+ 60
+RCL 77
+600
+÷
+IP
+60
+MOD
+50
+XEQ 75                          ; -> :D2B:
+RCL 77
+10
+÷
+IP
+60
+MOD
+52
+XEQ 74                          ; -> :D2Z:
+RCL 77
+10
+MOD
+STO 54
+0
+STO 55
+56
+STO 98
+GTO 77                          ; -> :BLK2:
+LBL 82                          ; :DDIG:  ---- the drawers: GRMOD 1 (4 when lit: the inverse); R85 x, R86 the band's row, R83 the scale ----
+RCL 74                          ; LBL :DDIG: the digit R74: its words (LBL R88 + code), the side columns (R89), the middle (R90), the side
+RCL 88
++
+STO 99
+XEQ IND 99
+XEQ 86                          ; -> :MODE:
+RCL 80
+XEQ 88                          ; -> :WORD:
+RCL 89
+STO 73
+RCL 86
+RCL 85
+XEQ 89                          ; -> :RUN:
+STO 85
+RCL 81
+XEQ 88                          ; -> :WORD:
+RCL 90
+STO 73
+RCL 86
+RCL 85
+XEQ 89                          ; -> :RUN:
+STO 85
+RCL 82
+XEQ 88                          ; -> :WORD:
+RCL 89
+STO 73
+RCL 86
+RCL 85
+XEQ 89                          ; -> :RUN:
+RTN
+LBL 83                          ; :DCLN:  LBL :DCLN: the colon: its word R80 x the code (0 / 1), 5 columns
+174
+STO 85
+37
+STO 86
+1
+STO 83
+277076996259840
+STO 80
+XEQ 86                          ; -> :MODE:
+RCL 80
+RCL 74
+×
+XEQ 88                          ; -> :WORD:
+5
+STO 73
+RCL 86
+RCL 85
+XEQ 89                          ; -> :RUN:
+RTN
+LBL 84                          ; :DDAY:  LBL :DDAY: the letters: LBL 23 + code (their column words, LBL :COL:), on
+101
+STO 86
+536870912
+STO 83
+XEQ 86                          ; -> :MODE:
+1
+STO 87
+RCL 74
+23
++
+STO 99
+XEQ IND 99
+RTN
+LBL 85                          ; :DIND:  LBL :DIND: the indicators: the slot AM / PM / 24H (t = code mod 8: LBL 32 + IP(t / 2), on when t is not
+101                             ; 0), then ALM, SIG, SPL (LBL 35-37, on by their bits)
+STO 86
+549755813888
+STO 83
+XEQ 86                          ; -> :MODE:
+RCL 74
+8
+MOD
+STO 78
+X≠0?
+1
+STO 87
+RCL 78
+2
+÷
+IP
+32
++
+STO 99
+XEQ IND 99
+RCL 74
+8
+÷
+IP
+2
+MOD
+STO 87
+XEQ 35
+RCL 74
+16
+÷
+IP
+2
+MOD
+STO 87
+XEQ 36
+RCL 74
+32
+÷
+IP
+2
+MOD
+STO 87
+XEQ 37
+RTN
+LBL 86                          ; :MODE:  LBL :MODE: GRMOD 1 + 3 x lit (1 written as it is, 4 the inverse)
+RCL 22
+3
+×
+1
++
+GRMOD
+RTN
+LBL 87                          ; :COL:  LBL :COL: one column: the word X x on (R87) at x R85, then x + 1
+RCL× 87
+XEQ 88                          ; -> :WORD:
+RCL 86
+RCL 85
+AGRAPH 84
+STO 85
+RTN
+LBL 88                          ; :WORD:  LBL :WORD: R84 = SINT(X x the scale R83)
+RCL× 83
+SINT
+STO 84
+RTN
+LBL 89                          ; :RUN:  LBL :RUN: R73 columns of R84 from Y (row), X (column); X moves on
+DO 04
+  AGRAPH 84
+  DSE 73
+WHILE 04
+ENDDO 04
+RTN
+LBL 90                          ; :DISS:  ---- LBL :DISS: the LCD's inside inverted in four XOR passes of a 4 x 4 ordered dither (the light's
+3                               ; pixel effect); each pass shown (PAUSE 1) ----
+GRMOD
+0#2                             ; ==== DISS (written by the build: per pass and band the four column words R80-R83, then the inside)
+STO 80
+1010101010101010101010101010101010101010101010101010101010101010#2
+STO 81
+0#2
+STO 82
+1010101010101010101010101010101010101010101010101010101010101010#2
+STO 83
+37
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+0#2
+STO 80
+1010101010101010101010101010101010101010101010101010101010101010#2
+STO 81
+0#2
+STO 82
+1010101010101010101010101010101010101010101010101010101010101010#2
+STO 83
+101
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+0#2
+STO 80
+1010101010101010101010#2
+STO 81
+0#2
+STO 82
+1010101010101010101010#2
+STO 83
+165
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+PAUSE 0
+101010101010101010101010101010101010101010101010101010101010101#2
+STO 80
+0#2
+STO 81
+101010101010101010101010101010101010101010101010101010101010101#2
+STO 82
+0#2
+STO 83
+37
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+101010101010101010101010101010101010101010101010101010101010101#2
+STO 80
+0#2
+STO 81
+101010101010101010101010101010101010101010101010101010101010101#2
+STO 82
+0#2
+STO 83
+101
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+101010101010101010101#2
+STO 80
+0#2
+STO 81
+101010101010101010101#2
+STO 82
+0#2
+STO 83
+165
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+PAUSE 0
+1010101010101010101010101010101010101010101010101010101010101010#2
+STO 80
+0#2
+STO 81
+1010101010101010101010101010101010101010101010101010101010101010#2
+STO 82
+0#2
+STO 83
+37
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+1010101010101010101010101010101010101010101010101010101010101010#2
+STO 80
+0#2
+STO 81
+1010101010101010101010101010101010101010101010101010101010101010#2
+STO 82
+0#2
+STO 83
+101
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+1010101010101010101010#2
+STO 80
+0#2
+STO 81
+1010101010101010101010#2
+STO 82
+0#2
+STO 83
+165
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+PAUSE 0
+0#2
+STO 80
+101010101010101010101010101010101010101010101010101010101010101#2
+STO 81
+0#2
+STO 82
+101010101010101010101010101010101010101010101010101010101010101#2
+STO 83
+37
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+0#2
+STO 80
+101010101010101010101010101010101010101010101010101010101010101#2
+STO 81
+0#2
+STO 82
+101010101010101010101010101010101010101010101010101010101010101#2
+STO 83
+101
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+0#2
+STO 80
+101010101010101010101#2
+STO 81
+0#2
+STO 82
+101010101010101010101#2
+STO 83
+165
+93
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 91                          ; -> :Q16:
+XEQ 92                          ; -> :Q4:
+AGRAPH 80
+AGRAPH 81
+PAUSE 0
+RTN
+LBL 91                          ; :Q16:  LBL :Q16:, LBL :Q4: the dither's columns: R80-R83 in turn, 16 or 4 columns from Y (row), X (column)
+AGRAPH 80
+AGRAPH 81
+AGRAPH 82
+AGRAPH 83
+AGRAPH 80
+AGRAPH 81
+AGRAPH 82
+AGRAPH 83
+AGRAPH 80
+AGRAPH 81
+AGRAPH 82
+AGRAPH 83
+LBL 92                          ; :Q4:
+AGRAPH 80
+AGRAPH 81
+AGRAPH 82
+AGRAPH 83
+RTN
+LBL 93                          ; :INIT:  ---- LBL :INIT: the start: WOFF and WSET, the words, the screen, the clock ----
+WSIZE 64
+20                              ; the work registers cleared (they may hold the user's numbers)
+R-CLR                           ; R-CLR 20.00: R20 to R99 (a count of 0: to R99)
+0
+STO+ "WOFF"
+STO+ "WSET"
+RCL "WOFF"
+STO 29
+RCL "WSET"                      ; WSET: its last digit (24h + 2 alarm + 4 chime: R78), then the alarm's hhmm (R79 = WSET div 10)
+STO 79
+10
+MOD
+STO 78
+2
+MOD
+STO 24
+RCL 78
+2
+÷
+IP
+2
+MOD
+STO 27
+RCL 78
+4
+÷
+IP
+STO 28
+RCL 79
+10
+÷
+IP
+STO 79
+100
+MOD
+STO 26
+RCL 79
+100
+÷
+IP
+STO 25
+8388607
+SINT
+STO 94
+-1                              ; nothing shown yet (-1); the day and minute unknown; no button inverted
+STO 47
+STO 48
+STO 61
+STO 62
+STO 63
+STO 64
+STO 65
+STO 66
+STO 67
+STO 68
+STO 69
+STO 70
+STO 71
+0
+STO 93
+CLLCD
+0
+GRMOD
+21                              ; ==== STATIC (written by the build: the title, the case, the LCD frame, the buttons and their names)
+GRFNT
+"Tribute to the best watch ever"
+218
+74
+ATEXT Z
+10
+GRFNT
+"7"
+156
+56
+ATEXT Z
+"LIGHT"
+156
+20
+ATEXT Z
+"4"
+68
+56
+ATEXT Z
+"MODE"
+68
+26
+ATEXT Z
+"9"
+156
+338
+ATEXT Z
+"ALARM"
+165
+349
+ATEXT Z
+"24H"
+156
+349
+ATEXT Z
+"START"
+147
+349
+ATEXT Z
+0
+GRMOD
+1
+0
+DROP
+54
+4035225266123964416
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+576460752303423488
+SINT
+STO 84
+DROP
+8
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4035225266123964416
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4611686018427385856
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+1024
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+512
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+256
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4611686018427379840
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4160
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+2080
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+1040
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+520
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+264
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+136
+SINT
+STO 84
+DROP
+18
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4611685984067649672
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+34359738504
+SINT
+STO 84
+DROP
+214
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4611685984067649672
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+136
+SINT
+STO 84
+DROP
+18
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+264
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+520
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+1040
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+2080
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4160
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4611686018427379840
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+256
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+512
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+1024
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4611686018427385856
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+63
+0
+DROP
+54
+4194303
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+2097152
+SINT
+STO 84
+DROP
+8
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4194303
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+68
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+92
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+307
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+331
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+335
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+125
+0
+DROP
+54
+281474968322048
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+140737496743936
+SINT
+STO 84
+DROP
+8
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+281474968322048
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+68
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+92
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+307
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+331
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+DROP
+335
+4611686018427387903
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+281474968322048
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+140737496743936
+SINT
+STO 84
+DROP
+8
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+281474968322048
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+187
+0
+DROP
+64
+2097151
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+2097152
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4194304
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+8388608
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+17301503
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+34078720
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+68157440
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+136314880
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+272629760
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+276824064
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+285212672
+SINT
+STO 84
+DROP
+18
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+285212673
+SINT
+STO 84
+DROP
+216
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+285212672
+SINT
+STO 84
+DROP
+18
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+276824064
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+272629760
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+136314880
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+68157440
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+34078720
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+17301503
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+8388608
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+4194304
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+2097152
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+2097151
+SINT
+STO 84
+DROP
+1
+STO 73
+DROP
+XEQ 89                          ; -> :RUN:
+RTN
+END
