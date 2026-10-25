@@ -19,10 +19,8 @@ is an original drawing in the spirit of the watch, not a copy of any brand's.
 
 The button you press is shown pressed (inverted) on the screen until the next one.
 
-**Standby**: the watch keeps the calculator busy, but if it goes to standby anyway, the key that wakes it ends
-WATCH47 cleanly (more than 30 s between two passes of its loop), so the calculator is back in its normal state;
-XEQ "WATCH47" starts it again. A longer power-off time in the calculator's setup, if your firmware has one,
-keeps the watch on longer.
+**Battery**: a running program keeps the C47 awake. If the calculator hangs on battery but works on USB, check the
+coin cell (BATT# in the INFO menu; a CR2032 under about 2.5 V is weak): the hangs of Oct 24 were a flat battery.
 
 ## The modes
 

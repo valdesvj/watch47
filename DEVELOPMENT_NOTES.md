@@ -35,13 +35,12 @@
   the alarm setting (WSET), the time setting (WOFF), the stopwatch split, C47, the end.
 - Steps: the start 6 950; a tick 414; a dissolve pass 796 (the light on in about 0.55 s); 3 460 steps, 13.5 KB.
 
-## Oct 24, 2026 - the standby check (as MH-10M 47, Zones 47, Logic 47, Elements 47)
+## Oct 25, 2026 - the standby check taken out again
 
-- Victor: a program waiting for a key went to standby and needed several presses to come back. LBL :WAKE: after
-  KEY? with no key: the clock's JD against the last pass's (R91); more than 30 s: the program ends as with 0
-  (R34 = 82); the loop runs on R94 (freed: the button's 23 ones written where they are used). 95 labels.
-- watch47sim: an event (t, ('sleep', s)) moves the clock s seconds at a key wait with no key. Tests: 10 min ends
-  the program cleanly, 5 s does not.
+- The hangs of Oct 24 (a program waiting for a key, several presses to come back) were a flat CR2032 (BATT# 2.08 V,
+  fine on USB). With the program running, the C47 does not go to standby (STBY: 498 passes of PAUSE 50 without one).
+  LBL :WAKE: (Oct 24) is gone again: the loop is DO / XEQ :TICK: / PAUSE / KEY? 34 / WHILE / ENDDO, R94 holds the
+  23 ones of the button again, R91 is free; watch47sim has no ('sleep', s) event. 94 labels.
 
 ## Oct 24, 2026 - "Invalid input data" at the start: R-CLR 20
 

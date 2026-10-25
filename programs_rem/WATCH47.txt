@@ -3,7 +3,6 @@ REM The time, the date and the seconds from the calculator's clock (plus an offs
 REM with AM / PM or 24 h; the daily alarm (it beeps 20 s: BUZZ), the hourly chime, the stopwatch (1/10 s:
 REM TICKS), the time setting; the light (a pixel dissolve); the Easter egg: 9 twice in the time mode shows C47.
 REM The three buttons are the C47 keys 7 (LIGHT), 4 (MODE) and 9 (ALARM ON-OFF / 24H / START-STOP); 0 ends.
-REM After a standby (more than 30 s between two passes of the loop) the key that wakes it ends the program.
 REM Modes (4 each time): time -> alarm (AL) -> stopwatch (ST) -> time setting -> time.
 REM   time:      7 the light (1.5 s), 9 12 h / 24 h (twice quickly: C47 for 2 s, and the setting as it was)
 REM   alarm:     9 alarm and chime: ALM -> ALM SIG -> SIG -> none; 7 set: the hour flashes, 9 + 1, 7 the
@@ -34,8 +33,7 @@ REM number (a new minute: the alarm, the chime), R49 the flashing phase (TICKS /
 REM R73 a counter, R74 the code drawn, R75-R79 work, R80-R82 a glyph's words (the dither words R80-R83),
 REM R83 the scale (2^rows above the band), R84 the AGRAPH word, R85 x, R86 the band's row, R87 1 / 0 an
 REM indicator on / off, R88 the glyph labels' first, R89 R90 the side and middle columns of a digit, R92 R93
-REM the button shown inverted (x, row; 0 none), R91 the clock's JD at the last pass, R94 1 / 0 wait on / end
-REM (the standby check), R95 the second of the last alarm beep,
+REM the button shown inverted (x, row; 0 none), R94 23 ones, R95 the second of the last alarm beep,
 REM R96 TICKS now, R97 the cell, R98 the target of LBL :D2Z:, R99 work. R20-R99 cleared at the end.
 REM The user's stack and LASTx are kept (LocR 9: STOS R.00, LASTx in R.08).
 REM Control flow in the C47 STRUCT commands (IF / ELSE / ENDIF, DO / WHILE / ENDDO), indented two spaces
@@ -47,12 +45,9 @@ LASTx
 STO R.08
 XEQ :INIT:
 REM ---- the buttons: 0 (82) the end; a key: LBL :KEY:; between keys the watch runs (LBL :TICK:, 0.2 s) ----
-REM with no key LBL :WAKE: (the standby check) sets R94 = 1 to wait on, 0 to end (R34 = 82, as 0)
 DO
   DO
     XEQ :TICK:
-    0
-    STO 94
     REM the stopwatch running in its mode: PAUSE 1 (the tenths every 0.1 s or so), else PAUSE 2. X = running x
     REM (mode = 2): mode (mode - 1)(3 - mode) / 2 is 1 for the stopwatch mode only
     RCL 20
@@ -72,9 +67,6 @@ DO
     X=0?
     PAUSE 2
     KEY? 34
-    XEQ :WAKE:
-    RCL 94
-    X≠0?
   WHILE
   ENDDO
   RCL 34
@@ -554,8 +546,7 @@ LBL :HLX:
 RCL 93
 X=0?
 RTN
-{ONES23}
-SINT
+RCL 94
 STO 84
 3
 GRMOD
@@ -569,36 +560,6 @@ RCL 92
 STO 73
 DROP
 XEQ :RUN:
-RTN
-REM ---- LBL :WAKE: the standby check: the calculator's clock (JD, R91 the last pass's); more than 30 s since
-REM the last pass (one is about 0.3 s): the calculator was in standby, and the key that woke it ends the
-REM program cleanly (R34 = 82, as 0), so it is left in its normal state. R94 = 1 - (IP(gap / 30 s) not 0) ----
-LBL :WAKE:
-Date→ⅅ
-Time→ℸ
-ⅅℸ→J
-RCL 91
-X<>Y
-STO 91
-X<>Y
--
-86400
-×
-30
-÷
-IP
-X≠0?
-1
-1
-X<>Y
--
-STO 94
-1
-RCL 94
--
-82
-×
-STO 34
 RTN
 REM ======== the watch running ========
 REM ---- LBL :TICK: the time (LBL :NOW:), the light's end, the C47's end, the alarm's beeps, the flashing
@@ -1344,11 +1305,9 @@ RCL 79
 ÷
 IP
 STO 25
-REM the clock now, for the standby check (LBL :WAKE:)
-Date→ⅅ
-Time→ℸ
-ⅅℸ→J
-STO 91
+{ONES23}
+SINT
+STO 94
 REM nothing shown yet (-1); the day and minute unknown; no button inverted
 -1
 STO 47
