@@ -9,14 +9,40 @@
 @ Output:  the calculator's time and date with seconds, 12 h (AM / PM) or 24 h, the day of the week;
 @ Output:  9 twice quickly shows C47
 @
-@ The time from the calculator's clock (an offset set on the watch is kept in WOFF); modes with 4: time,
-@ alarm (AL), stopwatch (ST), time setting. The alarm beeps 20 s (BUZZ), the hourly chime beeps once. The light
-@ (7) lights the LCD for 1.5 s with a pixel dissolve. The settings are kept in WSET.
-@ Your stack and LASTx are kept (STOS / RCLS in local registers); the registers R20-R99 are cleared at the
-@ start and the end.
-@ Needs a C47 / R47 firmware with ATEXT, GRFNT, AGRAPH, BUZZ and the STRUCT commands (WSIZE 64).
-@ The comments after ';' say what each part does (rejig drops them: they take no memory).
+@ ---- What it is ----
+@ Watch 47 turns the C47 into the classic three-button digital watch: the time, the date and the seconds from the
+@ calculator's clock, 12 h with AM / PM or 24 h, the day of the week, a daily alarm that really beeps, an hourly
+@ chime, a stopwatch with split, the time setting and the light (here a pixel dissolve). Its three buttons are the
+@ C47 keys 7, 4 and 9. The face is an original drawing in the spirit of the watch, not a copy of any brand's.
 @
+@ ---- How to use it ----
+@ Load WATCH47 and press XEQ WATCH47. The button you press is shown pressed on the screen.
+@   7  LIGHT      time: the light for 1.5 s; alarm: set it; stopwatch: split / reset; setting: the next field
+@   4  MODE       time -> alarm (AL) -> stopwatch (ST) -> time setting -> time
+@   9  the right  time: 12 / 24 h; alarm: ALM -> ALM SIG -> SIG -> none (alarm and hourly chime on or off);
+@      button     stopwatch: start / stop; setting: + 1
+@   0             the end
+@ Setting the alarm: in AL press 7 (the hour flashes), 9 adds one, 7 the minutes, 9 adds one, 4 ends (the alarm is
+@ on after a setting). At its minute the watch beeps for 20 s; any button stops it. With SIG on it beeps on the hour.
+@ Setting the time: the seconds flash, 9 puts them to 00; 7 moves on to the hour, the minutes, the month, the day,
+@ 9 adds one; 4 back to the time. The day of the week follows from the date.
+@ The stopwatch counts tenths (the C47's TICKS) and keeps running in the other modes. Easter egg: press 9 twice
+@ quickly in the time mode.
+@
+@ ---- What it changes on your calculator ----
+@ Your stack and LASTx are given back at the end. Registers R00-R19 are not touched; R20-R99 are used and cleared at
+@ the start and the end. Two variables stay between runs: WSET (12 / 24 h, the alarm, the chime, the alarm time) and
+@ WOFF (the watch's difference from the calculator's clock, in days; 0 STO "WOFF" goes back to the calculator's
+@ time). The screen is cleared at the end; GRMOD 0 and GRFNT 20 are set; WSIZE is set to 64. A running program
+@ keeps the calculator awake: leave with 0 when you are done.
+@
+@ ---- Programs and labels ----
+@ One program, WATCH47, with one global label (WATCH47). Every routine inside is a local label (LBL 00-37 the
+@ digits, letters and indicators, called with XEQ IND, and the named routines), so nothing else is added to your
+@ program catalogue. It uses the STRUCT commands, ATEXT, GRFNT, AGRAPH (with GRMOD 4 for the lit display) and BUZZ;
+@ GRMOD 4 with AGRAPH and BUZZ inside a program have not yet been run on a calculator (see the README).
+@
+@ ---- Technical notes (from the commented source) ----
 @ WATCH47 v0.1.0 - Watch 47: a tribute to the classic three-button digital watch, on the C47 / R47
 @ The time, the date and the seconds from the calculator's clock (plus an offset set on the watch), 12 h
 @ with AM / PM or 24 h; the daily alarm (it beeps 20 s: BUZZ), the hourly chime, the stopwatch (1/10 s:
@@ -65,11 +91,15 @@ STOS R.00
 LASTx
 STO R.08
 XEQ 93                          ; -> :INIT:
-DO 01                           ; ---- the buttons: 0 (82) the end; a key: LBL :KEY:; between keys the watch runs (LBL :TICK:, 0.2 s) ----
+@
+@ ---- the buttons: 0 (82) the end; a key: LBL :KEY:; between keys the watch runs (LBL :TICK:, 0.2 s) ----
+DO 01
   DO 02
     XEQ 59                      ; -> :TICK:
-    RCL 20                      ; the stopwatch running in its mode: PAUSE 1 (the tenths every 0.1 s or so), else PAUSE 2. X = running x
-    RCL 20                      ; (mode = 2): mode (mode - 1)(3 - mode) / 2 is 1 for the stopwatch mode only
+@     the stopwatch running in its mode: PAUSE 1 (the tenths every 0.1 s or so), else PAUSE 2. X = running x
+@     (mode = 2): mode (mode - 1)(3 - mode) / 2 is 1 for the stopwatch mode only
+    RCL 20
+    RCL 20
     1
     -
     ×
@@ -93,8 +123,11 @@ DO 01                           ; ---- the buttons: 0 (82) the end; a key: LBL :
 WHILE 01
   XEQ 38                        ; -> :KEY:
 ENDDO 01
-20.79                           ; ---- 0: the end: R20-R99 cleared, GRMOD 0, GRFNT 20, the screen; the user's stack and LASTx back ----
-R-CLR                           ; R20-R98 (R-CLR 20.79: 20 + 79 must stay below 100; a count of 0 is refused on the C47), then R99
+@
+@ ---- 0: the end: R20-R99 cleared, GRMOD 0, GRFNT 20, the screen; the user's stack and LASTx back ----
+@ R20-R98 (R-CLR 20.79: 20 + 79 must stay below 100; a count of 0 is refused on the C47), then R99
+20.79
+R-CLR
 0
 STO 99
 0
@@ -106,7 +139,8 @@ RCL R.08
 STO L
 RCLS R.00
 RTN
-LBL 00                          ; big digit 0: the words of its side, middle, side columns  ==== GLYPHS (written by the build: LBL 00-22, the words of each digit; LBL 23-31 the letters; LBL 32-37
+@ ==== GLYPHS (written by the build: LBL 00-22, the words of each digit; LBL 23-31 the letters; LBL 32-37
+LBL 00                          ; big digit 0: the words of its side, middle, side columns
 562945675231104
 STO 80
 70931694131085375
@@ -1322,10 +1356,14 @@ XEQ 87                          ; -> :COL:
 0
 XEQ 87                          ; -> :COL:
 RTN
-LBL 38                          ; :KEY:  the indicators)
-TICKS                           ; ======== the buttons ========
-STO 96                          ; ---- LBL :KEY: the key R34: the alarm beeping: any button stops it (and does nothing else); 7 (52),
-RCL 37                          ; 4 (62), 9 (54); then it is the key before (R35, R36) ----
+@ the indicators)
+@ ======== the buttons ========
+@ ---- LBL :KEY: the key R34: the alarm beeping: any button stops it (and does nothing else); 7 (52),
+@ 4 (62), 9 (54); then it is the key before (R35, R36) ----
+LBL 38                          ; :KEY:
+TICKS
+STO 96
+RCL 37
 X≠0?
 GTO 39                          ; -> :KSTOP:
 RCL 34
@@ -1349,8 +1387,11 @@ LBL 39                          ; :KSTOP:
 0
 STO 37
 RTN
-LBL 40                          ; :KA:  ---- LBL :KA: 7 (LIGHT): time: the light; alarm: the setting (hour, minutes, hour ...); stopwatch:
-54                              ; split / reset; setting: the next field ----
+@
+@ ---- LBL :KA: 7 (LIGHT): time: the light; alarm: the setting (hour, minutes, hour ...); stopwatch:
+@ split / reset; setting: the next field ----
+LBL 40                          ; :KA:
+54
 148
 XEQ 57                          ; -> :HL:
 RCL 20
@@ -1371,7 +1412,8 @@ RCL 21
 MOD
 STO 21
 RTN
-LBL 41                          ; :KA1:  the alarm's field: 0 -> 1, 1 -> 2, 2 -> 1
+@ the alarm's field: 0 -> 1, 1 -> 2, 2 -> 1
+LBL 41                          ; :KA1:
 RCL 21
 2
 MOD
@@ -1379,8 +1421,10 @@ MOD
 +
 STO 21
 RTN
-LBL 42                          ; :KA2:  split shown: back to the running time; running: split (the time now kept, SPL); stopped: reset. No
-RCL 33                          ; branch: the time so far x (split + running not 0: X≠0? 1); split = (1 - split) x running; R72 the time now
+@ split shown: back to the running time; running: split (the time now kept, SPL); stopped: reset. No
+@ branch: the time so far x (split + running not 0: X≠0? 1); split = (1 - split) x running; R72 the time now
+LBL 42                          ; :KA2:
+RCL 33
 RCL 30
 +
 X≠0?
@@ -1395,7 +1439,8 @@ RCL 33
 RCL× 30
 STO 33
 RTN
-LBL 43                          ; :LIGHT:  LBL :LIGHT: lit until now + 1.5 s (R23); not lit yet: the dissolve on
+@ LBL :LIGHT: lit until now + 1.5 s (R23); not lit yet: the dissolve on
+LBL 43                          ; :LIGHT:
 RCL 96
 15
 +
@@ -1407,8 +1452,11 @@ XEQ 90                          ; -> :DISS:
 1
 STO 22
 RTN
-LBL 44                          ; :KB:  ---- LBL :KB: 4 (MODE): the alarm being set: the setting ends; else the next mode (field 0); no C47.
-54                              ; No branch: the mode + 1 - e, e = (mode is 1) x (a field): mode(2 - mode)(3 - mode)/2 is 1 for 1 only ----
+@
+@ ---- LBL :KB: 4 (MODE): the alarm being set: the setting ends; else the next mode (field 0); no C47.
+@ No branch: the mode + 1 - e, e = (mode is 1) x (a field): mode(2 - mode)(3 - mode)/2 is 1 for 1 only ----
+LBL 44                          ; :KB:
+54
 60
 XEQ 57                          ; -> :HL:
 0
@@ -1439,8 +1487,11 @@ STO 20
 0
 STO 21
 RTN
-LBL 45                          ; :KC:  ---- LBL :KC: 9: time: 12 / 24 h (twice in 1 s: C47 2 s); alarm: on / chime, or + 1 in the setting;
-336                             ; stopwatch: start / stop; setting: LBL :KC3: ----
+@
+@ ---- LBL :KC: 9: time: 12 / 24 h (twice in 1 s: C47 2 s); alarm: on / chime, or + 1 in the setting;
+@ stopwatch: start / stop; setting: LBL :KC3: ----
+LBL 45                          ; :KC:
+336
 148
 XEQ 57                          ; -> :HL:
 RCL 20
@@ -1460,7 +1511,8 @@ RCL 24
 -
 STO 24
 XEQ 56                          ; -> :SAVE:
-RCL 35                          ; the key before also 9, at most 1 s ago (10 TICKS): C47 until now + 2 s
+@ the key before also 9, at most 1 s ago (10 TICKS): C47 until now + 2 s
+RCL 35
 54
 X≠Y?
 RTN
@@ -1475,9 +1527,12 @@ RCL 96
 +
 STO 38
 RTN
-LBL 46                          ; :KC1:  alarm, no field: the state k = (1 - alarm)(3 - chime) + alarm x chime (0 ALM, 1 ALM SIG, 2 SIG,
-RCL 21                          ; 3 none) + 1 mod 4: alarm = IP((3 - k) / 2), chime = IP((k + 1) / 2) mod 2; a field: the hour + (2 - field),
-X≠0?                            ; the minutes + (field - 1), the alarm on
+@ alarm, no field: the state k = (1 - alarm)(3 - chime) + alarm x chime (0 ALM, 1 ALM SIG, 2 SIG,
+@ 3 none) + 1 mod 4: alarm = IP((3 - k) / 2), chime = IP((k + 1) / 2) mod 2; a field: the hour + (2 - field),
+@ the minutes + (field - 1), the alarm on
+LBL 46                          ; :KC1:
+RCL 21
+X≠0?
 GTO 47                          ; -> :KC1S:
 1
 RCL 27
@@ -1532,7 +1587,8 @@ STO 26
 1
 STO 27
 GTO 56                          ; -> :SAVE:
-LBL 48                          ; :KC2:  stopwatch: the time so far kept (R31), the start now, running 1 - running (stopped: R31 stays)
+@ stopwatch: the time so far kept (R31), the start now, running 1 - running (stopped: R31 stays)
+LBL 48                          ; :KC2:
 XEQ 68                          ; -> :SWE:
 STO 31
 RCL 96
@@ -1542,13 +1598,19 @@ RCL 30
 -
 STO 30
 RTN
-LBL 49                          ; :KC3:  ---- LBL :KC3: the setting, field R21: 0 the seconds to 00 (- ss, + 60 from 30), 1 the hour + 1 (23:
-RCL 21                          ; - 23 h), 2 the minutes + 1 (59: - 59), in seconds (LBL :KCSEC: picks them); 3 the month + 1 (the day
-3                               ; kept, at most the month's last), 4 the day + 1 (the last: 1), in days (LBL :KCDAY:) ----
+@
+@ ---- LBL :KC3: the setting, field R21: 0 the seconds to 00 (- ss, + 60 from 30), 1 the hour + 1 (23:
+@ - 23 h), 2 the minutes + 1 (59: - 59), in seconds (LBL :KCSEC: picks them); 3 the month + 1 (the day
+@ kept, at most the month's last), 4 the day + 1 (the last: 1), in days (LBL :KCDAY:) ----
+LBL 49                          ; :KC3:
+RCL 21
+3
 X≤Y?
 GTO 50                          ; -> :KCDAY:
-RCL 45                          ; the three deltas: d0 = 60 IP(ss / 30) - ss, d1 = 3600 - 86400 IP(hh / 23), d2 = 60 - 3600 IP(mm / 59);
-30                              ; chosen by the field f: d0 (f - 1)(f - 2) / 2 + d1 f (2 - f) + d2 f (f - 1) / 2
+@ the three deltas: d0 = 60 IP(ss / 30) - ss, d1 = 3600 - 86400 IP(hh / 23), d2 = 60 - 3600 IP(mm / 59);
+@ chosen by the field f: d0 (f - 1)(f - 2) / 2 + d1 f (2 - f) + d2 f (f - 1) / 2
+RCL 45
+30
 ÷
 IP
 60
@@ -1602,7 +1664,8 @@ RCL 79
 86400
 ÷
 GTO 53                          ; -> :OFFS:
-LBL 50                          ; :KCDAY:  the month or the day: the new date (R75 y, R76 m, R77 d) -> LBL :JDN: - the day number now (R47)
+@ the month or the day: the new date (R75 y, R76 m, R77 d) -> LBL :JDN: - the day number now (R47)
+LBL 50                          ; :KCDAY:
 RCL 40
 STO 75
 RCL 41
@@ -1638,12 +1701,14 @@ LBL 52                          ; :KCD5:
 XEQ 55                          ; -> :JDN:
 RCL 47
 -
-LBL 53                          ; :OFFS:  LBL :OFFS: X days more on the watch's offset (kept in WOFF)
+@ LBL :OFFS: X days more on the watch's offset (kept in WOFF)
+LBL 53                          ; :OFFS:
 STO+ 29
 RCL 29
 STO "WOFF"
 RTN
-LBL 54                          ; :MLEN:  LBL :MLEN: the days of the month R76 of the year R75: the 1st of the next month - the 1st (R77 1)
+@ LBL :MLEN: the days of the month R76 of the year R75: the 1st of the next month - the 1st (R77 1)
+LBL 54                          ; :MLEN:
 1
 STO 77
 RCL 76
@@ -1659,9 +1724,13 @@ RCL 79
 X<>Y
 -
 RTN
-LBL 55                          ; :JDN:  ---- LBL :JDN: the day number of R75 y, R76 m (13: January of y + 1), R77 d: a = (14 - m) div 12,
-14                              ; y' = y + 4800 - a, m' = m + 12a - 3, N = d + (153m' + 2) div 5 + 365y' + y' div 4 - y' div 100
-RCL 76                          ; + y' div 400 - 32045 (R99 a, then y'; X m') ----
+@
+@ ---- LBL :JDN: the day number of R75 y, R76 m (13: January of y + 1), R77 d: a = (14 - m) div 12,
+@ y' = y + 4800 - a, m' = m + 12a - 3, N = d + (153m' + 2) div 5 + 365y' + y' div 4 - y' div 100
+@ + y' div 400 - 32045 (R99 a, then y'; X m') ----
+LBL 55                          ; :JDN:
+14
+RCL 76
 -
 12
 ÷
@@ -1709,7 +1778,8 @@ IP
 32045
 -
 RTN
-LBL 56                          ; :SAVE:  LBL :SAVE: WSET = 24h + 2 alarm + 4 chime + 10 (100 hour + minutes) of the alarm
+@ LBL :SAVE: WSET = 24h + 2 alarm + 4 chime + 10 (100 hour + minutes) of the alarm
+LBL 56                          ; :SAVE:
 RCL 25
 100
 ×
@@ -1729,7 +1799,9 @@ RCL 24
 +
 STO "WSET"
 RTN
-LBL 57                          ; :HL:  ---- LBL :HL: the button at x Y, row X shown inverted, the one before inverted again (LBL :HLX:) ----
+@
+@ ---- LBL :HL: the button at x Y, row X shown inverted, the one before inverted again (LBL :HLX:) ----
+LBL 57                          ; :HL:
 STO 77
 R↓
 STO 76
@@ -1740,7 +1812,8 @@ RCL 77
 STO 93
 XEQ 58                          ; -> :HLX:
 RTN
-LBL 58                          ; :HLX:  LBL :HLX: the inside of the button R92, R93 (8 x 23, XOR); none when R93 = 0
+@ LBL :HLX: the inside of the button R92, R93 (8 x 23, XOR); none when R93 = 0
+LBL 58                          ; :HLX:
 RCL 93
 X=0?
 RTN
@@ -1759,9 +1832,12 @@ STO 73
 DROP
 XEQ 89                          ; -> :RUN:
 RTN
-LBL 59                          ; :TICK:  ======== the watch running ========
-TICKS                           ; ---- LBL :TICK: the time (LBL :NOW:), the light's end, the C47's end, the alarm's beeps, the flashing
-STO 96                          ; phase; then the display (LBL :UPD:) ----
+@ ======== the watch running ========
+@ ---- LBL :TICK: the time (LBL :NOW:), the light's end, the C47's end, the alarm's beeps, the flashing
+@ phase; then the display (LBL :UPD:) ----
+LBL 59                          ; :TICK:
+TICKS
+STO 96
 XEQ 63                          ; -> :NOW:
 RCL 22
 X≠0?
@@ -1780,7 +1856,8 @@ IP
 MOD
 STO 49
 GTO 69                          ; -> :UPD:
-LBL 60                          ; :LTO:  LBL :LTO: the light off when R23 is past: the dissolve back
+@ LBL :LTO: the light off when R23 is past: the dissolve back
+LBL 60                          ; :LTO:
 RCL 23
 RCL 96
 X<Y?
@@ -1789,7 +1866,8 @@ XEQ 90                          ; -> :DISS:
 0
 STO 22
 RTN
-LBL 61                          ; :ETO:  LBL :ETO: the C47 off when R38 is past
+@ LBL :ETO: the C47 off when R38 is past
+LBL 61                          ; :ETO:
 RCL 38
 RCL 96
 X<Y?
@@ -1797,7 +1875,8 @@ RTN
 0
 STO 38
 RTN
-LBL 62                          ; :RING:  LBL :RING: the alarm: past R37: off; else at each new second four beeps (2048 Hz, 60 ms on, 60 ms off)
+@ LBL :RING: the alarm: past R37: off; else at each new second four beeps (2048 Hz, 60 ms on, 60 ms off)
+LBL 62                          ; :RING:
 RCL 37
 RCL 96
 X≥Y?
@@ -1808,7 +1887,8 @@ X=Y?
 RTN
 RCL 45
 STO 95
-2048                            ; ==== BEEPS (written by the build: 4 x the beep and the silence, BUZZ Y Hz X ms)
+@ ==== BEEPS (written by the build: 4 x the beep and the silence, BUZZ Y Hz X ms)
+2048
 60
 BUZZ
 0
@@ -1833,8 +1913,11 @@ BUZZ
 60
 BUZZ
 RTN
-LBL 63                          ; :NOW:  ---- LBL :NOW: the watch's time: the clock's JD + the offset, in seconds R39 = IP((JD + 0.5) 86400 + 0.5);
-Date→ⅅ                          ; a new day: the date (LBL :NEWDAY:); hh mm ss; a new minute: the alarm, the chime (LBL :NEWMIN:) ----
+@
+@ ---- LBL :NOW: the watch's time: the clock's JD + the offset, in seconds R39 = IP((JD + 0.5) 86400 + 0.5);
+@ a new day: the date (LBL :NEWDAY:); hh mm ss; a new minute: the alarm, the chime (LBL :NEWMIN:) ----
+LBL 63                          ; :NOW:
+Date→ⅅ
 Time→ℸ
 ⅅℸ→J
 RCL+ 29
@@ -1879,7 +1962,8 @@ RCL 48
 X≠Y?
 XEQ 65                          ; -> :NEWMIN:
 RTN
-LBL 64                          ; :NEWDAY:  LBL :NEWDAY: X the old day number, Y the new: R47; its date (LBL :CAL:) and weekday ((N + 1) mod 7)
+@ LBL :NEWDAY: X the old day number, Y the new: R47; its date (LBL :CAL:) and weekday ((N + 1) mod 7)
+LBL 64                          ; :NEWDAY:
 X<>Y
 STO 47
 1
@@ -1888,8 +1972,10 @@ STO 47
 MOD
 STO 46
 GTO 67                          ; -> :CAL:
-LBL 65                          ; :NEWMIN:  LBL :NEWMIN: X the old minute, Y the new: R48; at the start (old -1) nothing; the alarm's minute and the
-X<>Y                            ; alarm on: it rings 20 s (R37); else a new hour and the chime on: one beep (not while it rings)
+@ LBL :NEWMIN: X the old minute, Y the new: R48; at the start (old -1) nothing; the alarm's minute and the
+@ alarm on: it rings 20 s (R37); else a new hour and the chime on: one beep (not while it rings)
+LBL 65                          ; :NEWMIN:
+X<>Y
 STO 48
 X<>Y
 X<0?
@@ -1922,14 +2008,20 @@ RTN
 RCL 37
 X≠0?
 RTN
-2048                            ; ==== CHIME (written by the build: one beep, BUZZ)
+@ ==== CHIME (written by the build: one beep, BUZZ)
+2048
 100
 BUZZ
 RTN
-LBL 67                          ; :CAL:  ---- LBL :CAL: the date of the day number R47 (Fliegel and Van Flandern, as Zones 47): a = N + 32044,
-RCL 47                          ; b = (4a + 3) div 146097, c = a - 146097b div 4, d = (4c + 3) div 1461, e = c - 1461d div 4,
-32044                           ; m = (5e + 2) div 153; day = e - (153m + 2) div 5 + 1, month = m + 3 - 12 (m div 10), year = 100b + d
-+                               ; - 4800 + m div 10 (R75 a c e, R76 b, R77 d, R78 m) ----
+@
+@ ---- LBL :CAL: the date of the day number R47 (Fliegel and Van Flandern, as Zones 47): a = N + 32044,
+@ b = (4a + 3) div 146097, c = a - 146097b div 4, d = (4c + 3) div 1461, e = c - 1461d div 4,
+@ m = (5e + 2) div 153; day = e - (153m + 2) div 5 + 1, month = m + 3 - 12 (m div 10), year = 100b + d
+@ - 4800 + m div 10 (R75 a c e, R76 b, R77 d, R78 m) ----
+LBL 67                          ; :CAL:
+RCL 47
+32044
++
 STO 75
 4
 ×
@@ -2005,7 +2097,9 @@ RCL 79
 +
 STO 40
 RTN
-LBL 68                          ; :SWE:  ---- LBL :SWE: the stopwatch's time (1/10 s): R31 + running x (TICKS now - the start) ----
+@
+@ ---- LBL :SWE: the stopwatch's time (1/10 s): R31 + running x (TICKS now - the start) ----
+LBL 68                          ; :SWE:
 RCL 96
 RCL 32
 -
@@ -2014,8 +2108,10 @@ RCL 30
 RCL 31
 +
 RTN
-LBL 69                          ; :UPD:  ======== the display ========
-XEQ 72                          ; -> :COMP:  ---- LBL :UPD: the targets (LBL :COMP:), then every cell whose target is not what is shown (LBL :CELL:) ----
+@ ======== the display ========
+@ ---- LBL :UPD: the targets (LBL :COMP:), then every cell whose target is not what is shown (LBL :CELL:) ----
+LBL 69                          ; :UPD:
+XEQ 72                          ; -> :COMP:
 0
 STO 97
 DO 03
@@ -2039,11 +2135,14 @@ DO 03
 WHILE 03
 ENDDO 03
 RTN
-LBL 70                          ; :CELL:  LBL :CELL: the target kept as shown, its code in R74; the cell's drawer and place (the build writes
-RCL IND 75                      ; them from python/layout.py: the big digits' x by arithmetic, the small ones' x, band and scale)
+@ LBL :CELL: the target kept as shown, its code in R74; the cell's drawer and place (the build writes
+@ them from python/layout.py: the big digits' x by arithmetic, the small ones' x, band and scale)
+LBL 70                          ; :CELL:
+RCL IND 75
 STO IND 76
 STO 74
-RCL 97                          ; ==== CELL
+@ ==== CELL
+RCL 97
 8
 X=Y?
 GTO 83                          ; -> :DCLN:
@@ -2124,8 +2223,11 @@ STO 90
 12
 STO 88
 GTO 82                          ; -> :DDIG:
-LBL 72                          ; :COMP:  ---- LBL :COMP: the targets: the colon on; ALM (alarm on) and SIG (chime on), ALM flashing while it
-1                               ; rings; then the mode's ----
+@
+@ ---- LBL :COMP: the targets: the colon on; ALM (alarm on) and SIG (chime on), ALM flashing while it
+@ rings; then the mode's ----
+LBL 72                          ; :COMP:
+1
 STO 58
 RCL 27
 8
@@ -2151,7 +2253,8 @@ RCL 20
 2
 X=Y?
 GTO 81                          ; -> :CSW:
-RCL 43                          ; the time (and the setting): the hour (LBL :HOUR:), the minutes, the seconds, the date, the weekday
+@ the time (and the setting): the hour (LBL :HOUR:), the minutes, the seconds, the date, the weekday
+RCL 43
 XEQ 73                          ; -> :HOUR:
 RCL 44
 52
@@ -2172,8 +2275,10 @@ RCL 38
 X≠0?
 XEQ 79                          ; -> :EGG:
 RTN
-LBL 73                          ; :HOUR:  LBL :HOUR: the hour X in cells 0 1: 24 h: 24H; 12 h: AM (h < 12) or PM, the hour (h + 11) mod 12 + 1
-STO 78                          ; (no branch: the indicator + 4 x 24h + (1 - 24h)(1 + IP(h / 12)); the hour h + (1 - 24h)(h12 - h))
+@ LBL :HOUR: the hour X in cells 0 1: 24 h: 24H; 12 h: AM (h < 12) or PM, the hour (h + 11) mod 12 + 1
+@ (no branch: the indicator + 4 x 24h + (1 - 24h)(1 + IP(h / 12)); the hour h + (1 - 24h)(h12 - h))
+LBL 73                          ; :HOUR:
+STO 78
 1
 RCL 24
 -
@@ -2204,7 +2309,8 @@ RCL 78
 +
 50
 GTO 75                          ; -> :D2B:
-LBL 74                          ; :D2Z:  LBL :D2Z: the value Y (0-99) in the cells X, X + 1 (tens, units); LBL :D2B: the tens blank when 0
+@ LBL :D2Z: the value Y (0-99) in the cells X, X + 1 (tens, units); LBL :D2B: the tens blank when 0
+LBL 74                          ; :D2Z:
 STO 98
 R↓
 STO 79
@@ -2230,8 +2336,10 @@ RTN
 10
 STO IND 98
 RTN
-LBL 76                          ; :CSET:  LBL :CSET: the setting: the month field shows the month; the field blank in the off phase: its first
-RCL 21                          ; cell is the character code of the text "62488" at the field (6 = 54 the seconds, 2 = 50 the hour ...)
+@ LBL :CSET: the setting: the month field shows the month; the field blank in the off phase: its first
+@ cell is the character code of the text "62488" at the field (6 = 54 the seconds, 2 = 50 the hour ...)
+LBL 76                          ; :CSET:
+RCL 21
 3
 X=Y?
 XEQ 78                          ; -> :CMON:
@@ -2244,7 +2352,8 @@ RCL 21
 αSL 77
 α→𝑥 77
 STO 98
-LBL 77                          ; :BLK2:  LBL :BLK2: the cells R98 and R98 + 1 blank
+@ LBL :BLK2: the cells R98 and R98 + 1 blank
+LBL 77                          ; :BLK2:
 10
 STO IND 98
 1
@@ -2256,7 +2365,8 @@ LBL 78                          ; :CMON:
 RCL 41
 56
 GTO 75                          ; -> :D2B:
-LBL 79                          ; :EGG:  LBL :EGG: C47 in the big digits: blank C 4 7, no colon, no seconds
+@ LBL :EGG: C47 in the big digits: blank C 4 7, no colon, no seconds
+LBL 79                          ; :EGG:
 10
 STO 50
 11
@@ -2270,7 +2380,8 @@ STO 58
 54
 STO 98
 GTO 77                          ; -> :BLK2:
-LBL 80                          ; :CALM:  LBL :CALM: the alarm: AL, its time, no seconds or date; a field blank in the off phase
+@ LBL :CALM: the alarm: AL, its time, no seconds or date; a field blank in the off phase
+LBL 80                          ; :CALM:
 7
 STO 59
 RCL 25
@@ -2297,8 +2408,10 @@ RCL 21
 +
 STO 98
 GTO 77                          ; -> :BLK2:
-LBL 81                          ; :CSW:  LBL :CSW: the stopwatch: ST; its time E (the split shown: R72), minutes (60), seconds, 1/10 s and 0;
-8                               ; SPL when split
+@ LBL :CSW: the stopwatch: ST; its time E (the split shown: R72), minutes (60), seconds, 1/10 s and 0;
+@ SPL when split
+LBL 81                          ; :CSW:
+8
 STO 59
 XEQ 68                          ; -> :SWE:
 STO 77
@@ -2333,8 +2446,10 @@ RCL 77
 10
 MOD
 STO 54
-RCL 77                          ; the 1/100 (the C47 counts tenths: TICKS is 100 ms): while it runs (not split) a digit that changes at
-7                               ; every update, (7 E + 3) mod 10, as the real watch's blur; stopped or split: 0
+@ the 1/100 (the C47 counts tenths: TICKS is 100 ms): while it runs (not split) a digit that changes at
+@ every update, (7 E + 3) mod 10, as the real watch's blur; stopped or split: 0
+RCL 77
+7
 ×
 3
 +
@@ -2349,8 +2464,11 @@ STO 55
 56
 STO 98
 GTO 77                          ; -> :BLK2:
-LBL 82                          ; :DDIG:  ---- the drawers: GRMOD 1 (4 when lit: the inverse); R85 x, R86 the band's row, R83 the scale ----
-RCL 74                          ; LBL :DDIG: the digit R74: its words (LBL R88 + code), the side columns (R89), the middle (R90), the side
+@
+@ ---- the drawers: GRMOD 1 (4 when lit: the inverse); R85 x, R86 the band's row, R83 the scale ----
+@ LBL :DDIG: the digit R74: its words (LBL R88 + code), the side columns (R89), the middle (R90), the side
+LBL 82                          ; :DDIG:
+RCL 74
 RCL 88
 +
 STO 99
@@ -2380,7 +2498,8 @@ RCL 86
 RCL 85
 XEQ 89                          ; -> :RUN:
 RTN
-LBL 83                          ; :DCLN:  LBL :DCLN: the colon: its word R80 x the code (0 / 1), 5 columns
+@ LBL :DCLN: the colon: its word R80 x the code (0 / 1), 5 columns
+LBL 83                          ; :DCLN:
 174
 STO 85
 37
@@ -2400,7 +2519,8 @@ RCL 86
 RCL 85
 XEQ 89                          ; -> :RUN:
 RTN
-LBL 84                          ; :DDAY:  LBL :DDAY: the letters: LBL 23 + code (their column words, LBL :COL:), on
+@ LBL :DDAY: the letters: LBL 23 + code (their column words, LBL :COL:), on
+LBL 84                          ; :DDAY:
 101
 STO 86
 536870912
@@ -2414,8 +2534,10 @@ RCL 74
 STO 99
 XEQ IND 99
 RTN
-LBL 85                          ; :DIND:  LBL :DIND: the indicators: the slot AM / PM / 24H (t = code mod 8: LBL 32 + IP(t / 2), on when t is not
-101                             ; 0), then ALM, SIG, SPL (LBL 35-37, on by their bits)
+@ LBL :DIND: the indicators: the slot AM / PM / 24H (t = code mod 8: LBL 32 + IP(t / 2), on when t is not
+@ 0), then ALM, SIG, SPL (LBL 35-37, on by their bits)
+LBL 85                          ; :DIND:
+101
 STO 86
 549755813888
 STO 83
@@ -2460,7 +2582,8 @@ MOD
 STO 87
 XEQ 37
 RTN
-LBL 86                          ; :MODE:  LBL :MODE: GRMOD 1 + 3 x lit (1 written as it is, 4 the inverse)
+@ LBL :MODE: GRMOD 1 + 3 x lit (1 written as it is, 4 the inverse)
+LBL 86                          ; :MODE:
 RCL 22
 3
 ×
@@ -2468,7 +2591,8 @@ RCL 22
 +
 GRMOD
 RTN
-LBL 87                          ; :COL:  LBL :COL: one column: the word X x on (R87) at x R85, then x + 1
+@ LBL :COL: one column: the word X x on (R87) at x R85, then x + 1
+LBL 87                          ; :COL:
 RCL× 87
 XEQ 88                          ; -> :WORD:
 RCL 86
@@ -2476,22 +2600,28 @@ RCL 85
 AGRAPH 84
 STO 85
 RTN
-LBL 88                          ; :WORD:  LBL :WORD: R84 = SINT(X x the scale R83)
+@ LBL :WORD: R84 = SINT(X x the scale R83)
+LBL 88                          ; :WORD:
 RCL× 83
 SINT
 STO 84
 RTN
-LBL 89                          ; :RUN:  LBL :RUN: R73 columns of R84 from Y (row), X (column); X moves on
+@ LBL :RUN: R73 columns of R84 from Y (row), X (column); X moves on
+LBL 89                          ; :RUN:
 DO 04
   AGRAPH 84
   DSE 73
 WHILE 04
 ENDDO 04
 RTN
-LBL 90                          ; :DISS:  ---- LBL :DISS: the LCD's inside inverted in four XOR passes of a 4 x 4 ordered dither (the light's
-3                               ; pixel effect); each pass shown (PAUSE 1) ----
+@
+@ ---- LBL :DISS: the LCD's inside inverted in four XOR passes of a 4 x 4 ordered dither (the light's
+@ pixel effect); each pass shown (PAUSE 1) ----
+LBL 90                          ; :DISS:
+3
 GRMOD
-0#2                             ; ==== DISS (written by the build: per pass and band the four column words R80-R83, then the inside)
+@ ==== DISS (written by the build: per pass and band the four column words R80-R83, then the inside)
+0#2
 STO 80
 1010101010101010101010101010101010101010101010101010101010101010#2
 STO 81
@@ -2808,7 +2938,8 @@ AGRAPH 80
 AGRAPH 81
 PAUSE 0
 RTN
-LBL 91                          ; :Q16:  LBL :Q16:, LBL :Q4: the dither's columns: R80-R83 in turn, 16 or 4 columns from Y (row), X (column)
+@ LBL :Q16:, LBL :Q4: the dither's columns: R80-R83 in turn, 16 or 4 columns from Y (row), X (column)
+LBL 91                          ; :Q16:
 AGRAPH 80
 AGRAPH 81
 AGRAPH 82
@@ -2827,10 +2958,14 @@ AGRAPH 81
 AGRAPH 82
 AGRAPH 83
 RTN
-LBL 93                          ; :INIT:  ---- LBL :INIT: the start: WOFF and WSET, the words, the screen, the clock ----
+@
+@ ---- LBL :INIT: the start: WOFF and WSET, the words, the screen, the clock ----
+LBL 93                          ; :INIT:
 WSIZE 64
-20.79                           ; the work registers cleared (they may hold the user's numbers)
-R-CLR                           ; R20-R98 (R-CLR 20.79: 20 + 79 must stay below 100; a count of 0 is refused on the C47), then R99
+@ the work registers cleared (they may hold the user's numbers)
+@ R20-R98 (R-CLR 20.79: 20 + 79 must stay below 100; a count of 0 is refused on the C47), then R99
+20.79
+R-CLR
 0
 STO 99
 0
@@ -2838,7 +2973,8 @@ STO+ "WOFF"
 STO+ "WSET"
 RCL "WOFF"
 STO 29
-RCL "WSET"                      ; WSET: its last digit (24h + 2 alarm + 4 chime: R78), then the alarm's hhmm (R79 = WSET div 10)
+@ WSET: its last digit (24h + 2 alarm + 4 chime: R78), then the alarm's hhmm (R79 = WSET div 10)
+RCL "WSET"
 STO 79
 10
 MOD
@@ -2874,7 +3010,8 @@ STO 25
 8388607
 SINT
 STO 94
--1                              ; nothing shown yet (-1); the day and minute unknown; no button inverted
+@ nothing shown yet (-1); the day and minute unknown; no button inverted
+-1
 STO 47
 STO 48
 STO 61
@@ -2893,7 +3030,8 @@ STO 93
 CLLCD
 0
 GRMOD
-21                              ; ==== STATIC (written by the build: the title, the case, the LCD frame, the buttons and their names)
+@ ==== STATIC (written by the build: the title, the case, the LCD frame, the buttons and their names)
+21
 GRFNT
 "Tribute to the best watch ever"
 218
