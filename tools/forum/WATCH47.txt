@@ -1,0 +1,32 @@
+---- What it is ----
+Watch 47 turns the C47 into the classic three-button digital watch: the time, the date and the seconds from the
+calculator's clock, 12 h with AM / PM or 24 h, the day of the week, a daily alarm that really beeps, an hourly
+chime, a stopwatch with split, the time setting and the light (here a pixel dissolve). Its three buttons are the
+C47 keys 7, 4 and 9. The face is an original drawing in the spirit of the watch, not a copy of any brand's.
+
+---- How to use it ----
+Load WATCH47 and press XEQ WATCH47. The button you press is shown pressed on the screen.
+  7  LIGHT      time: the light for 1.5 s; alarm: set it; stopwatch: split / reset; setting: the next field
+  4  MODE       time -> alarm (AL) -> stopwatch (ST) -> time setting -> time
+  9  the right  time: 12 / 24 h; alarm: ALM -> ALM SIG -> SIG -> none (alarm and hourly chime on or off);
+     button     stopwatch: start / stop; setting: + 1
+  0             the end
+Setting the alarm: in AL press 7 (the hour flashes), 9 adds one, 7 the minutes, 9 adds one, 4 ends (the alarm is
+on after a setting). At its minute the watch beeps for 20 s; any button stops it. With SIG on it beeps on the hour.
+Setting the time: the seconds flash, 9 puts them to 00; 7 moves on to the hour, the minutes, the month, the day,
+9 adds one; 4 back to the time. The day of the week follows from the date.
+The stopwatch counts tenths (the C47's TICKS) and keeps running in the other modes. Easter egg: press 9 twice
+quickly in the time mode.
+
+---- What it changes on your calculator ----
+Your stack and LASTx are given back at the end. Registers R00-R19 are not touched; R20-R99 are used and cleared at
+the start and the end. Two variables stay between runs: WSET (12 / 24 h, the alarm, the chime, the alarm time) and
+WOFF (the watch's difference from the calculator's clock, in days; 0 STO "WOFF" goes back to the calculator's
+time). The screen is cleared at the end; GRMOD 0 and GRFNT 20 are set; WSIZE is set to 64. A running program
+keeps the calculator awake: leave with 0 when you are done.
+
+---- Programs and labels ----
+One program, WATCH47, with one global label (WATCH47). Every routine inside is a local label (LBL 00-37 the
+digits, letters and indicators, called with XEQ IND, and the named routines), so nothing else is added to your
+program catalogue. It uses the STRUCT commands, ATEXT, GRFNT, AGRAPH (with GRMOD 4 for the lit display) and BUZZ;
+GRMOD 4 with AGRAPH and BUZZ inside a program have not yet been run on a calculator (see the README).

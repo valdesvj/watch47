@@ -74,7 +74,8 @@ standard font doubled, the indicators its small font.
 |---|---|
 | `programs_rem/WATCH47.txt` | the commented source (STRUCT, named labels) — edit this one |
 | `programs/WATCH47.txt`, `build/WATCH47.txt` | the calculator program (to convert with rejig) |
-| `build/forum/WATCH47.p47u` | the same program as a commented rejig source (`@` header, comments after `;`) |
+| `build/forum/WATCH47.p47u` | the file for the forum and the C47's PROGRAMS folder: the `@` metadata, how to use it in plain words (`tools/forum/WATCH47.txt`), then the steps with the source's comments as `@` lines and the label names after `;` (rejig compiles neither: no memory, no REM step); checked by `tests/test_forum.py` |
+| `tools/build_p47.py` | on your computer with rejig: `build/p47/WATCH47.p47` from the forum file (`--validate=r47`), checked byte for byte against the plain listing's |
 | `listings/` | numbered steps with comments, the local labels |
 | `python/layout.py` | the screen: digits, letters, indicators, the case, the buttons; `mock()` draws a state |
 | `tools/build_watch47.py` | the build: the drawing steps from `layout.py`, the STRUCT numbers, the labels |

@@ -65,3 +65,13 @@
 2. BUZZ and the TICKS hook into Almanac 47's c47sim.
 3. Ideas: a tick only when the second changes (fewer steps, longer battery); the alarm's snooze? (the watch
    has none).
+
+## Oct 26, 2026 - the forum file for new users (branch claude/watch47-forum)
+
+- The forum asked contributors for plain-English instructions in the .p47u ('@' lines, not '#': rejig makes a '#'
+  line a REM step) and local labels. build_forum.py (as Logic 47's and Chess 47's): the '@' metadata, then
+  tools/forum/WATCH47.txt (What it is, How to use it, What it changes on your calculator, Programs and labels), then
+  the source's header as technical notes; the comment blocks as whole '@' lines before their steps, label names
+  after ';'. tools/build_p47.py (with rejig on Victor's computer): build/p47/WATCH47.p47, checked against the plain
+  listing's. tests/test_forum.py.
+

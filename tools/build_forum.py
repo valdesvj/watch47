@@ -5,11 +5,12 @@ release (as Logic 47's, Almanac 47's and Zones 47's tools/build_forum.py: '@' he
   build/forum/WATCH47.p47u  from build/WATCH47.txt (the steps) and listings/WATCH47_doc.txt (the comments)
 
 The steps are those of build/*.txt, one by one (the same .p47 as the plain listing): indented as the source
-(STRUCT, two spaces a level), the partner numbers written (DO 01 ... ENDDO 01). The comments of the source
-(its REM lines) go after ';' at the end of the steps they stand before, one comment line a step, in a column;
-the name of a label (LBL :INIT:) is given as a comment on its LBL and on each XEQ / GTO to it. rejig drops
-everything after ';', so the comments take no memory. A line that starts with ';' or '#' would become a REM
-step on the calculator (Almanac 47 DEVELOPMENT_NOTES): there are none; the source's header is in '@' lines.
+(STRUCT, two spaces a level), the partner numbers written (DO 01 ... ENDDO 01). After the '@' metadata, the
+narrative of tools/forum/NAME.txt (what the program does and how to use it, in plain words), then the source's
+header as technical notes. The source's comment blocks (its REM lines) are '@' lines before the steps they stand
+before; the name of a label (LBL :INIT:) is given after ';' on its LBL and on each XEQ / GTO to it. rejig compiles
+neither '@' lines nor what follows ';', so the comments take no memory. A line that starts with ';' or '#' would
+become a REM step on the calculator (Almanac 47 DEVELOPMENT_NOTES): there are none.
 
   python3 tools/build_watch47.py   (writes it too)
   rejig: the .p47 of build/forum/WATCH47.p47u must be the size of the one of build/WATCH47.txt.
@@ -34,19 +35,18 @@ HEAD = {
 @ Output:  the calculator's time and date with seconds, 12 h (AM / PM) or 24 h, the day of the week;
 @ Output:  9 twice quickly shows C47
 @
-@ The time from the calculator's clock (an offset set on the watch is kept in WOFF); modes with 4: time,
-@ alarm (AL), stopwatch (ST), time setting. The alarm beeps 20 s (BUZZ), the hourly chime beeps once. The light
-@ (7) lights the LCD for 1.5 s with a pixel dissolve. The settings are kept in WSET.
-@ Your stack and LASTx are kept (STOS / RCLS in local registers); the registers R20-R99 are cleared at the
-@ start and the end.
-@ Needs a C47 / R47 firmware with ATEXT, GRFNT, AGRAPH, BUZZ and the STRUCT commands (WSIZE 64).
-@ The comments after ';' say what each part does (rejig drops them: they take no memory).
-@
 """,
 }
 
 STEP = re.compile(r'^\s*(\d+)  (.*)$')
 NAMED = re.compile(r'^(\s*)(.*?)\s{4}\((\d+)\)$')            # "XEQ :INIT:    (83)", "DO    (01)"
+
+
+def narrative(name):
+    """tools/forum/NAME.txt: what the program does and how to use it, in plain words, as '@' lines."""
+    fn = os.path.join(ROOT, 'tools', 'forum', name + '.txt')
+    lines = open(fn, encoding='utf-8').read().rstrip('\n').split('\n')
+    return ['@ ' + ln if ln.strip() else '@' for ln in lines] + ['@']
 
 
 def parse(name):
@@ -104,39 +104,31 @@ def build(name):
             names[mm.group(3)] = mm.group(2)[4:]
     out = [(HEAD[name] % dict(author=AUTHOR, version=version, source=SOURCE)).rstrip('\n')]
     data = data_notes(name, plain, names)
+    out += narrative(name)
+    out += ['@ ---- Technical notes (from the commented source) ----']
     out += ['@ ' + h if h else '@' for h in head] + ['@', '']
-    queue, last = [], None
     for k, ((ind, text, n, com), step) in enumerate(zip(steps, plain)):
         if ';' in step or step.lstrip().startswith(('#', '@')):
             raise SystemExit('%s step %d: %r would not survive rejig' % (name, n, step))
-        if com:
-            if queue and last is not None:                       # the rest of the last block: on its last step
-                out[last] += ' ' + ' '.join(queue)
-            queue = list(com)
+        if com:                                                  # the source's comment block: '@' lines (not compiled)
+            if com[0].startswith('----') and out[-1] != '':
+                out.append('@')
+            out += ['@ ' + ind + c if c else '@' for c in com]
         note = ''
         mm = re.fullmatch(r'(LBL|XEQ|GTO) (\d\d)', step)
         if mm and mm.group(2) in names:
             note = names[mm.group(2)] if mm.group(1) == 'LBL' else '-> ' + names[mm.group(2)]
         if k in data:
             note = (note + '  ' if note else '') + data[k]
-        c = queue.pop(0) if queue else ''
-        if note and c:
-            c = note + '  ' + c
-        elif note:
-            c = note
         line = ind + step
-        if c:
-            line = line.ljust(COL) + '; ' + c if len(line) < COL else line + '  ; ' + c
+        if note:
+            line = line.ljust(COL) + '; ' + note if len(line) < COL else line + '  ; ' + note
         out.append(line)
-        if c:
-            last = len(out) - 1
-    if queue and last is not None:
-        out[last] += ' ' + ' '.join(queue)
     os.makedirs(OUT, exist_ok=True)
     fn = os.path.join(OUT, name + '.p47u')
     with open(fn, 'w', encoding='utf-8') as fh:
         fh.write('\n'.join(out).rstrip('\n') + '\n')
-    ncom = sum(1 for ln in out if re.search(r'\s; ', ln))
+    ncom = sum(1 for ln in out if ln.startswith('@ ') or re.search(r'\s; ', ln))
     print('build/forum/%s.p47u  %d steps, %d with a comment, version %s' % (name, len(plain), ncom, version))
     return out
 
